@@ -26,9 +26,11 @@ export interface Shop {
   name: string;
   nameEn: string;
   owner: string;
+  ownerEn: string;
   mobile: string;
   villageId: string;
   address: string;
+  addressEn: string;
   outstandingBalance: number;
 }
 
@@ -144,9 +146,11 @@ export const INITIAL_SHOPS: Shop[] = [
     name: 'श्री गणेश किराणा स्टोअर्स',
     nameEn: 'Shri Ganesh Kirana Stores',
     owner: 'गणेश कुलकर्णी',
+    ownerEn: 'Ganesh Kulkarni',
     mobile: '+91 94230 11223',
     villageId: 'v-1',
     address: 'मेन रोड, बस स्टँड जवळ, सांगोला',
+    addressEn: 'Near Bus Stand, Main Road, Sangola',
     outstandingBalance: 4500,
   },
   {
@@ -154,9 +158,11 @@ export const INITIAL_SHOPS: Shop[] = [
     name: 'साई किराणा स्टोअर्स',
     nameEn: 'Sai Kirana Stores',
     owner: 'विष्णू कदम',
+    ownerEn: 'Vishnu Kadam',
     mobile: '+91 94230 44556',
     villageId: 'v-1',
     address: 'शिवाजी चौक, सांगोला',
+    addressEn: 'Shivaji Chowk, Sangola',
     outstandingBalance: 1200,
   },
   {
@@ -164,9 +170,11 @@ export const INITIAL_SHOPS: Shop[] = [
     name: 'माऊली ट्रेडर्स',
     nameEn: 'Mauli Traders',
     owner: 'दत्तात्रय पवार',
+    ownerEn: 'Dattatray Pawar',
     mobile: '+91 94230 77889',
     villageId: 'v-1',
     address: 'मार्केट यार्ड, सांगोला',
+    addressEn: 'Market Yard, Sangola',
     outstandingBalance: 0,
   },
   {
@@ -174,9 +182,11 @@ export const INITIAL_SHOPS: Shop[] = [
     name: 'समर्थ किराणा भंडार',
     nameEn: 'Samarth Kirana Bhandar',
     owner: 'सुरेश देशमुख',
+    ownerEn: 'Suresh Deshmukh',
     mobile: '+91 98500 12345',
     villageId: 'v-2',
     address: 'स्टेशन रोड, अकलूज',
+    addressEn: 'Station Road, Akluj',
     outstandingBalance: 3100,
   },
   {
@@ -184,9 +194,11 @@ export const INITIAL_SHOPS: Shop[] = [
     name: 'जय भवानी किराणा',
     nameEn: 'Jai Bhavani Kirana',
     owner: 'आनंद शिंदे',
+    ownerEn: 'Anand Shinde',
     mobile: '+91 98500 67890',
     villageId: 'v-2',
     address: 'गांधी चौक, अकलूज',
+    addressEn: 'Gandhi Chowk, Akluj',
     outstandingBalance: 850,
   },
   {
@@ -194,9 +206,11 @@ export const INITIAL_SHOPS: Shop[] = [
     name: 'विठ्ठल कृपा प्रोव्हिजन',
     nameEn: 'Vitthal Krupa Provision',
     owner: 'पांडुरंग काळे',
+    ownerEn: 'Pandurang Kale',
     mobile: '+91 97630 11223',
     villageId: 'v-3',
     address: 'मंदिर रस्ता, वाखरी',
+    addressEn: 'Temple Road, Wakhari',
     outstandingBalance: 2400,
   },
   {
@@ -204,9 +218,11 @@ export const INITIAL_SHOPS: Shop[] = [
     name: 'कृष्णा ट्रेडर्स',
     nameEn: 'Krishna Traders',
     owner: 'महादेव जाधव',
+    ownerEn: 'Mahadev Jadhav',
     mobile: '+91 98600 99887',
     villageId: 'v-4',
     address: 'नगरपालिका चौक, मंगळवेढा',
+    addressEn: 'Municipality Chowk, Mangalwedha',
     outstandingBalance: 5200,
   },
 ];

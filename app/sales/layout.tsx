@@ -36,7 +36,7 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-[#f7faf8] flex flex-col text-slate-800">
       {/* Top Header */}
       <header className="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16 sm:h-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center justify-between h-16 sm:h-20">
           {/* Brand Logo */}
           <div onClick={() => router.push("/sales/home")} className="cursor-pointer">
             <Logo size="default" />
@@ -77,7 +77,7 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
 
         {/* Desktop Navigation Links */}
         <div className="border-t border-slate-100 bg-[#fafcfb] hidden sm:block">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 flex gap-1 sm:gap-2 py-1.5 overflow-x-auto">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 flex gap-1 sm:gap-2 py-1.5 overflow-x-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== "/sales/home" && pathname?.startsWith(item.href));
@@ -101,7 +101,7 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
       </header>
 
       {/* Main Content Viewport */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-24 sm:pb-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-4 sm:py-6 pb-24 sm:pb-8">
         {children}
       </main>
 

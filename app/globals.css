@@ -5,7 +5,7 @@
 @tailwind utilities;
 
 :root {
-  --background: #f7faf8;
+  --background: #f0f4f1;
   --foreground: #1e293b;
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-marathi: 'Noto Sans Devanagari', 'Plus Jakarta Sans', sans-serif;
@@ -13,7 +13,12 @@
 
 body {
   color: var(--foreground);
-  background: var(--background);
+  background-color: #f0f5f2;
+  background-image: 
+    radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.09) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(217, 119, 6, 0.05) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(244, 249, 246, 0.8) 0px, #edf3ef 100%);
+  background-attachment: fixed;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
@@ -24,7 +29,7 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #e9efe9;
 }
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;

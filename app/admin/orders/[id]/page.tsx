@@ -104,7 +104,7 @@ export default function OrderDetailsPage() {
                 {language === "mr" ? "दुकानाचे नाव" : "Shop Name"}
               </span>
               <strong className="text-slate-900 font-bold block mt-0.5">
-                {shop?.name || "श्री गणेश किराणा स्टोअर्स"}
+                {language === "en" ? (shop?.nameEn || shop?.name || "Shri Ganesh Kirana Stores") : (shop?.name || "श्री गणेश किराणा स्टोअर्स")}
               </strong>
             </div>
 
@@ -113,7 +113,7 @@ export default function OrderDetailsPage() {
                 {language === "mr" ? "गाव" : "Village"}
               </span>
               <span className="text-slate-800 font-bold block mt-0.5">
-                {village?.marathiName} ({village?.englishName})
+                {language === "en" ? `${village?.englishName} (${village?.marathiName})` : `${village?.marathiName} (${village?.englishName})`}
               </span>
             </div>
 
@@ -122,7 +122,7 @@ export default function OrderDetailsPage() {
                 {language === "mr" ? "मालक / संपर्क" : "Owner / Mobile"}
               </span>
               <span className="text-slate-800 font-semibold block mt-0.5">
-                {shop?.owner} • {shop?.mobile}
+                {language === "en" ? (shop?.ownerEn || shop?.owner) : shop?.owner} • {shop?.mobile}
               </span>
             </div>
 
@@ -131,7 +131,7 @@ export default function OrderDetailsPage() {
                 {language === "mr" ? "पत्ता" : "Address"}
               </span>
               <span className="text-slate-600 block mt-0.5">
-                {shop?.address}
+                {language === "en" ? (shop?.addressEn || shop?.address) : shop?.address}
               </span>
             </div>
           </div>

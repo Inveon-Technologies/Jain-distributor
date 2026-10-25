@@ -70,11 +70,11 @@ export default function TodayOrdersPage() {
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-slate-900 leading-tight">
-                        {shop?.name || "किराणा दुकान"}
+                        {language === "en" ? (shop?.nameEn || shop?.name || "Kirana Store") : (shop?.name || "किराणा दुकान")}
                       </h3>
                       <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-0.5">
                         <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{village?.marathiName || "सांगोला"}</span>
+                        <span>{language === "en" ? (village?.englishName || "Sangola") : (village?.marathiName || "सांगोला")}</span>
                         <span>•</span>
                         <Clock className="w-3.5 h-3.5 text-slate-400" />
                         <span>{order.createdAt}</span>

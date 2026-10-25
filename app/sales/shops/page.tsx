@@ -28,11 +28,15 @@ function ShopsContent() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const villageShops = shops.filter((s) => s.villageId === currentVillage.id);
-  const filteredShops = villageShops.filter(
-    (s) =>
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.owner.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredShops = villageShops.filter((s) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      s.name.toLowerCase().includes(q) ||
+      s.owner.toLowerCase().includes(q) ||
+      (s.nameEn && s.nameEn.toLowerCase().includes(q)) ||
+      (s.ownerEn && s.ownerEn.toLowerCase().includes(q))
+    );
+  });
 
   const handleStartOrder = (shop: Shop) => {
     setSelectedShop(shop);
@@ -53,9 +57,9 @@ function ShopsContent() {
               {language === "mr" ? "निवडलेले गाव" : "Selected Village"}
             </span>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
-              {currentVillage.marathiName}{" "}
+              {language === "en" ? currentVillage.englishName : currentVillage.marathiName}{" "}
               <span className="text-sm font-semibold text-slate-500">
-                ({currentVillage.englishName})
+                ({language === "en" ? currentVillage.marathiName : currentVillage.englishName})
               </span>
             </h1>
           </div>
@@ -114,60 +118,60 @@ function ShopsContent() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredShops.map((shop) => (
-              <div
-                key={shop.id}
-                className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:border-emerald-300 hover:shadow-md transition flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-brand-primary flex items-center justify-center shrink-0">
-                        <Store className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-slate-900 leading-tight">
-                          {shop.name}
-                        </h3>
-                        <span className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
-                          <span>{t.shopOwner}:</span>
-                          <strong className="text-slate-700">{shop.owner}</strong>
-                        </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredShops.map((shop) => {
+              const displayName = language === "en" ? (shop.nameEn || shop.name) : shop.name;
+              const displayOwner = language === "en" ? (shop.ownerEn || shop.owner) : shop.owner;
+              const displayAddress = language === "en" ? (shop.addressEn || shop.address) : shop.address;
+
+              return (
+                <div
+                  key={shop.id}
+                  className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:border-emerald-300 hover:shadow-md transition flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-brand-primary flex items-center justify-center shrink-0">
+                          <Store className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-slate-900 leading-tight">
+                            {displayName}
+                          </h3>
+                          <span className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+                            <span>{t.shopOwner}:</span>
+                            <strong className="text-slate-700">{displayOwner}</strong>
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    {shop.outstandingBalance > 0 && (
-                      <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold shrink-0">
-                        ₹{shop.outstandingBalance}
-                      </span>
-                    )}
+                    {/* Details */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col gap-1.5 text-xs text-slate-600">
+                      <p className="truncate text-slate-500">
+                        📍 {displayAddress}
+                      </p>
+                      <p className="text-slate-500 flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{shop.mobile}</span>
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Details */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col gap-1.5 text-xs text-slate-600">
-                    <p className="truncate text-slate-500">
-                      📍 {shop.address}
-                    </p>
-                    <p className="text-slate-500 flex items-center gap-1">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{shop.mobile}</span>
-                    </p>
-                  </div>
+                  {/* Primary Action Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleStartOrder(shop)}
+                    className="w-full mt-5 py-3 px-4 rounded-xl bg-brand-primary hover:bg-brand-deep text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.99] transition"
+                  >
+                    <Mic className="w-4 h-4 text-emerald-300" />
+                    <span>{t.recordOrderForShop}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
-
-                {/* Primary Action Button */}
-                <button
-                  type="button"
-                  onClick={() => handleStartOrder(shop)}
-                  className="w-full mt-5 py-3 px-4 rounded-xl bg-brand-primary hover:bg-brand-deep text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.99] transition"
-                >
-                  <Mic className="w-4 h-4 text-emerald-300" />
-                  <span>{t.recordOrderForShop}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

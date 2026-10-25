@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 import {
   INITIAL_SALESPERSONS,
   INITIAL_VILLAGES,
@@ -31,6 +31,7 @@ interface AppContextType {
   toggleLanguage: () => void;
   currentUser: CurrentUser | null;
   login: (email: string, pass: string) => { success: boolean; role?: UserRole; error?: string };
+  registerSalesperson: (data: { name: string; email: string; mobile: string }) => { success: boolean };
   logout: () => void;
   villages: Village[];
   shops: Shop[];
@@ -86,10 +87,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         role: "ADMIN",
       };
       setCurrentUser(adminUser);
-      setLanguage("en"); // Admin defaults to English
+      setLanguage("en");
       return { success: true, role: "ADMIN" as UserRole };
     } else {
-      // Find matching salesperson or default to Amol
       const sp = salespersons.find((s) => s.email.toLowerCase() === cleanEmail) || salespersons[0];
       const salesUser: CurrentUser = {
         id: sp.id,
@@ -100,9 +100,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         mobile: sp.mobile,
       };
       setCurrentUser(salesUser);
-      setLanguage("mr"); // Salesperson defaults to Marathi
+      setLanguage("mr");
       return { success: true, role: "SALESPERSON" as UserRole };
     }
+  };
+
+  const registerSalesperson = ({ name, email, mobile }: { name: string; email: string; mobile: string }) => {
+    const id = `sp-${salespersons.length + 1}`;
+    const newSp: Salesperson = {
+      id,
+      name,
+      nameEn: name,
+      email,
+      mobile: mobile || "+91 98000 00000",
+      status: "ACTIVE",
+      todayVisits: 0,
+      todayOrders: 0,
+      assignedVillages: ["v-1", "v-2"],
+    };
+
+    setSalespersons((prev) => [...prev, newSp]);
+    setCurrentUser({
+      id: newSp.id,
+      name: newSp.name,
+      nameEn: newSp.nameEn,
+      email: newSp.email,
+      role: "SALESPERSON",
+      mobile: newSp.mobile,
+    });
+    setLanguage("mr");
+    return { success: true };
   };
 
   const logout = () => {
@@ -114,7 +141,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const created: Shop = { ...shopData, id };
     setShops((prev) => [created, ...prev]);
 
-    // update shops count in village
     setVillages((prev) =>
       prev.map((v) =>
         v.id === shopData.villageId ? { ...v, shopsCount: v.shopsCount + 1 } : v
@@ -170,7 +196,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setOrders((prev) => [newOrder, ...prev]);
 
-    // Increment orders counts in salesperson and village
     if (currentUser?.id) {
       setSalespersons((prev) =>
         prev.map((sp) =>
@@ -196,6 +221,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleLanguage,
         currentUser,
         login,
+        registerSalesperson,
         logout,
         villages,
         shops,

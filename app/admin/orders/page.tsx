@@ -120,16 +120,18 @@ export default function AdminOrdersPage() {
 
                     <td className="py-3.5 px-4">
                       <strong className="text-slate-900 block font-bold">
-                        {shop?.name || "दुकान"}
+                        {language === "en" ? (shop?.nameEn || shop?.name || "Shop") : (shop?.name || "दुकान")}
                       </strong>
                       <span className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
                         <MapPin className="w-3 h-3 text-emerald-600" />
-                        <span>{village?.marathiName || "सांगोला"}</span>
+                        <span>
+                          {language === "en" ? (village?.englishName || "Sangola") : (village?.marathiName || "सांगोला")}
+                        </span>
                       </span>
                     </td>
 
                     <td className="py-3.5 px-4 font-semibold text-slate-800">
-                      {sp?.name || "अमोल पाटील"}
+                      {language === "en" ? (sp?.nameEn || sp?.name || "Amol Patil") : (sp?.name || "अमोल पाटील")}
                     </td>
 
                     <td className="py-3.5 px-4 max-w-xs">

@@ -13,9 +13,12 @@ export default function AdminShopsPage() {
   const [selectedVillageId, setSelectedVillageId] = useState("ALL");
 
   const filteredShops = shops.filter((s) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.owner.toLowerCase().includes(searchQuery.toLowerCase());
+      s.name.toLowerCase().includes(q) ||
+      s.owner.toLowerCase().includes(q) ||
+      (s.nameEn && s.nameEn.toLowerCase().includes(q)) ||
+      (s.ownerEn && s.ownerEn.toLowerCase().includes(q));
     const matchesVillage =
       selectedVillageId === "ALL" || s.villageId === selectedVillageId;
     return matchesSearch && matchesVillage;
@@ -87,10 +90,10 @@ export default function AdminShopsPage() {
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-slate-900 leading-tight">
-                      {s.name}
+                      {language === "en" ? (s.nameEn || s.name) : s.name}
                     </h3>
                     <span className="text-xs text-slate-500 font-medium">
-                      {s.owner}
+                      {language === "en" ? (s.ownerEn || s.owner) : s.owner}
                     </span>
                   </div>
                 </div>
@@ -106,7 +109,7 @@ export default function AdminShopsPage() {
                 <p className="flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>
-                    <strong>{v?.marathiName}</strong> • {s.address}
+                    <strong>{language === "en" ? (v?.englishName || v?.marathiName) : v?.marathiName}</strong> • {language === "en" ? (s.addressEn || s.address) : s.address}
                   </span>
                 </p>
                 <p className="flex items-center gap-1.5">

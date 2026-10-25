@@ -55,7 +55,11 @@ function OrderSuccessContent() {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-slate-500">{language === "mr" ? "दुकान" : "Shop"}:</span>
-            <strong className="text-slate-900">{orderShop?.name || "श्री गणेश किराणा स्टोअर्स"}</strong>
+            <strong className="text-slate-900">
+              {language === "en"
+                ? (orderShop?.nameEn || orderShop?.name || "Shri Ganesh Kirana Stores")
+                : (orderShop?.name || "श्री गणेश किराणा स्टोअर्स")}
+            </strong>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">{language === "mr" ? "एकूण साहित्य" : "Total Items"}:</span>

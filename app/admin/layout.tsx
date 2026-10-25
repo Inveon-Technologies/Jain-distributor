@@ -189,6 +189,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </span>
               </div>
             </div>
+
+            {/* Logout button */}
+            <button
+              onClick={handleLogout}
+              title={t.logout}
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </header>
 
