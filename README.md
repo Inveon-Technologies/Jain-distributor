@@ -33,12 +33,31 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🔑 Test Credentials (Single Unified Login)
 
-On the root login page (`http://localhost:3000`), enter either of the following or use the 1-click Quick Login buttons:
+On the root login page (`http://localhost:3000`), enter credentials, sign in with Google, or register a new field salesperson:
 
 | Role | Email | Password | Assigned Landing Page |
 | :--- | :--- | :--- | :--- |
 | **Salesperson (अमोल पाटील)** | `amol@jain.com` | `sales123` | `/sales/home` |
 | **Admin (प्रशासक / Management)** | `admin@jain.com` | `admin123` | `/admin/dashboard` |
+
+> **Sign up Note:** Admins have pre-provisioned credentials. New field salespersons can sign up via the **"नवीन सेल्समन नोंदणी करा" (Sign up)** modal directly on the login page.
+
+---
+
+## 🐙 Push to GitHub Repository
+
+To push the project to your Inveon Technologies GitHub repository:
+
+```bash
+cd C:\Users\Ankita\.gemini\antigravity\scratch\jain-distributor-web
+
+# Add the remote repository URL
+git remote add origin https://github.com/Inveon-Technologies/jain-distributor-web.git
+
+# Push to the main branch
+git branch -M main
+git push -u origin main
+```
 
 ---
 
