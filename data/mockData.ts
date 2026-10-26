@@ -3,6 +3,7 @@ export interface Salesperson {
   name: string;
   nameEn: string;
   email: string;
+  password?: string;
   mobile: string;
   status: 'ACTIVE' | 'INACTIVE';
   todayVisits: number;

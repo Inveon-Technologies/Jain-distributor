@@ -6,10 +6,10 @@ import { translations } from "@/data/translations";
 import { formatBilingual } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
 import { Salesperson } from "@/data/mockData";
-import { Users, Phone, Mail, CheckCircle2, XCircle, Plus, X, UserPlus, Check, Trash2 } from "lucide-react";
+import { Users, Phone, Mail, CheckCircle2, XCircle, Plus, X, UserPlus, Check, Trash2, Eye, EyeOff, Clock } from "lucide-react";
 
 export default function AdminSalespersonsPage() {
-  const { language, salespersons, villages, addSalesperson, deleteSalesperson } = useApp();
+  const { language, salespersons, villages, addSalesperson, deleteSalesperson, toggleSalespersonStatus } = useApp();
   const t = translations[language];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,6 +17,8 @@ export default function AdminSalespersonsPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
+  const [password, setPassword] = useState("123456");
+  const [showPassword, setShowPassword] = useState(false);
   const [assignedVillage, setAssignedVillage] = useState(villages[0]?.id || "v-1");
   const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
 
@@ -28,6 +30,7 @@ export default function AdminSalespersonsPage() {
       name: name.trim(),
       email: email.trim(),
       mobile: mobile.trim() || "+91 98000 00000",
+      password: password.trim() || "123456",
       assignedVillages: [assignedVillage],
       status,
     });
@@ -35,6 +38,7 @@ export default function AdminSalespersonsPage() {
     setName("");
     setEmail("");
     setMobile("");
+    setPassword("123456");
     setIsModalOpen(false);
   };
 
@@ -97,25 +101,29 @@ export default function AdminSalespersonsPage() {
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                  <button
+                    type="button"
+                    onClick={() => toggleSalespersonStatus(sp.id)}
+                    title={sp.status === "ACTIVE" ? t.clickToDeactivate : t.clickToActivate}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition shadow-xs hover:scale-105 active:scale-95 cursor-pointer ${
                       sp.status === "ACTIVE"
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-slate-100 text-slate-500"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100"
+                        : "bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100"
                     }`}
                   >
                     {sp.status === "ACTIVE" ? (
                       <>
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                         <span>{t.active}</span>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                       </>
                     ) : (
                       <>
-                        <XCircle className="w-3 h-3 text-slate-400" />
-                        <span>{t.inactive}</span>
+                        <Clock className="w-3.5 h-3.5 text-amber-600" />
+                        <span>{language === "mr" ? "मंजुरी प्रलंबित" : "Pending Approval"}</span>
                       </>
                     )}
-                  </span>
+                  </button>
 
                   <button
                     type="button"
@@ -255,6 +263,32 @@ export default function AdminSalespersonsPage() {
                   placeholder={t.salespersonMobilePlaceholder}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  {t.tempPasswordLabel} *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={t.tempPasswordPlaceholder}
+                    className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <span className="text-[11px] text-slate-400 block mt-1">
+                  {t.tempPasswordHelp}
+                </span>
               </div>
 
               <div>

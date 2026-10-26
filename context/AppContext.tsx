@@ -32,12 +32,14 @@ interface AppContextType {
   toggleLanguage: () => void;
   currentUser: CurrentUser | null;
   login: (email: string, pass: string) => { success: boolean; role?: UserRole; error?: string };
-  registerSalesperson: (data: { name: string; email: string; mobile: string }) => { success: boolean };
+  registerSalesperson: (data: { name: string; email: string; mobile: string; password?: string }) => { success: boolean; pendingApproval?: boolean };
   logout: () => void;
   villages: Village[];
   shops: Shop[];
   orders: Order[];
   salespersons: Salesperson[];
+  toggleSalespersonStatus: (salespersonId: string) => void;
+  updateSalespersonPassword: (salespersonId: string, newPass: string) => { success: boolean };
   selectedVillage: Village | null;
   setSelectedVillage: (v: Village | null) => void;
   selectedShop: Shop | null;
@@ -50,6 +52,7 @@ interface AppContextType {
     name: string;
     nameEn?: string;
     email: string;
+    password?: string;
     mobile: string;
     assignedVillages?: string[];
     status?: "ACTIVE" | "INACTIVE";
@@ -102,7 +105,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLanguage("en");
       return { success: true, role: "ADMIN" as UserRole };
     } else {
-      const sp = salespersons.find((s) => s.email.toLowerCase() === cleanEmail) || salespersons[0];
+      const sp = salespersons.find((s) => s.email.toLowerCase() === cleanEmail);
+      if (!sp) {
+        // Fallback for default demo
+        const fallback = salespersons[0];
+        if (fallback.status === "INACTIVE") {
+          return { success: false, error: "ACCOUNT_INACTIVE" };
+        }
+        setCurrentUser({
+          id: fallback.id,
+          name: fallback.name,
+          nameEn: fallback.nameEn,
+          email: cleanEmail || fallback.email,
+          role: "SALESPERSON",
+          mobile: fallback.mobile,
+        });
+        setLanguage("mr");
+        return { success: true, role: "SALESPERSON" as UserRole };
+      }
+
+      // Check if user is INACTIVE (pending admin approval)
+      if (sp.status === "INACTIVE") {
+        return { success: false, error: "ACCOUNT_INACTIVE" };
+      }
+
+      // Check password if set
+      if (sp.password && pass && sp.password !== pass) {
+        return { success: false, error: "INVALID_CREDENTIALS" };
+      }
+
       const salesUser: CurrentUser = {
         id: sp.id,
         name: sp.name,
@@ -117,38 +148,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const registerSalesperson = ({ name, email, mobile }: { name: string; email: string; mobile: string }) => {
+  const registerSalesperson = ({
+    name,
+    email,
+    mobile,
+    password = "123456",
+  }: {
+    name: string;
+    email: string;
+    mobile: string;
+    password?: string;
+  }) => {
     const id = `sp-${salespersons.length + 1}`;
     const bilingual = autoBilingualName(name);
     const newSp: Salesperson = {
       id,
       name: bilingual.mr || name,
       nameEn: bilingual.en || name,
-      email,
+      email: email.trim().toLowerCase(),
+      password,
       mobile: mobile || "+91 98000 00000",
-      status: "ACTIVE",
+      status: "INACTIVE", // Self-registration starts as INACTIVE (Pending Admin Approval)
       todayVisits: 0,
       todayOrders: 0,
-      assignedVillages: ["v-1", "v-2"],
+      assignedVillages: ["v-1"],
     };
 
     setSalespersons((prev) => [...prev, newSp]);
-    setCurrentUser({
-      id: newSp.id,
-      name: newSp.name,
-      nameEn: newSp.nameEn,
-      email: newSp.email,
-      role: "SALESPERSON",
-      mobile: newSp.mobile,
-    });
-    setLanguage("mr");
-    return { success: true };
+    return { success: true, pendingApproval: true };
   };
 
   const addSalesperson = ({
     name,
     nameEn,
     email,
+    password = "123456",
     mobile,
     assignedVillages = ["v-1"],
     status = "ACTIVE",
@@ -156,6 +190,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     name: string;
     nameEn?: string;
     email: string;
+    password?: string;
     mobile: string;
     assignedVillages?: string[];
     status?: "ACTIVE" | "INACTIVE";
@@ -170,6 +205,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       name: finalMr,
       nameEn: finalEn,
       email: email.trim().toLowerCase(),
+      password,
       mobile: mobile || "+91 98000 00000",
       status,
       todayVisits: 0,
@@ -179,6 +215,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setSalespersons((prev) => [...prev, created]);
     return created;
+  };
+
+  const toggleSalespersonStatus = (salespersonId: string) => {
+    setSalespersons((prev) =>
+      prev.map((sp) =>
+        sp.id === salespersonId
+          ? { ...sp, status: sp.status === "ACTIVE" ? "INACTIVE" : "ACTIVE" }
+          : sp
+      )
+    );
+  };
+
+  const updateSalespersonPassword = (salespersonId: string, newPass: string) => {
+    setSalespersons((prev) =>
+      prev.map((sp) => (sp.id === salespersonId ? { ...sp, password: newPass } : sp))
+    );
+    return { success: true };
   };
 
   const logout = () => {
@@ -309,6 +362,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         deleteVillage,
         addSalesperson,
         deleteSalesperson,
+        toggleSalespersonStatus,
+        updateSalespersonPassword,
         createOrder,
       }}
     >

@@ -20,6 +20,11 @@ import {
   User,
   X,
   Check,
+  Eye,
+  EyeOff,
+  KeyRound,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 
 export default function LoginPage() {
@@ -29,6 +34,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -38,11 +44,19 @@ export default function LoginPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newMobile, setNewMobile] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [newVillage, setNewVillage] = useState(villages[0]?.id || "v-1");
+  const [registrationSuccessMsg, setRegistrationSuccessMsg] = useState("");
+
+  // Forgot password modal
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [resetInput, setResetInput] = useState("");
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setRegistrationSuccessMsg("");
     setIsLoading(true);
 
     setTimeout(() => {
@@ -55,14 +69,18 @@ export default function LoginPage() {
           router.push("/sales/home");
         }
       } else {
-        setError(res.error || "Invalid credentials");
+        if (res.error === "ACCOUNT_INACTIVE") {
+          setError(t.accountPendingApproval);
+        } else {
+          setError(language === "mr" ? "ई-मेल किंवा पासवर्ड चुकीचा आहे." : "Invalid email or password.");
+        }
       }
     }, 400);
   };
 
   const handleGoogleSignIn = () => {
     setIsLoading(true);
-    // Simulate instant Google OAuth for salesperson Amol Patil
+    // Simulate instant Google OAuth for active salesperson Amol Patil
     setTimeout(() => {
       login("amol@jain.com", "google-auth");
       router.push("/sales/home");
@@ -77,10 +95,21 @@ export default function LoginPage() {
       name: newName.trim(),
       email: newEmail.trim(),
       mobile: newMobile.trim(),
+      password: newPassword.trim() || "123456",
     });
 
     setIsSignUpOpen(false);
-    router.push("/sales/home");
+    setRegistrationSuccessMsg(t.registrationSuccessPending);
+    setNewName("");
+    setNewEmail("");
+    setNewMobile("");
+    setNewPassword("");
+  };
+
+  const handleResetPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetInput.trim()) return;
+    setResetSuccess(true);
   };
 
   return (
@@ -190,10 +219,19 @@ export default function LoginPage() {
               </p>
             </div>
 
+            {/* Registration Success Banner */}
+            {registrationSuccessMsg && (
+              <div className="mb-4 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium flex items-start gap-2.5">
+                <CheckCircle2 className="w-5 h-5 text-brand-primary shrink-0 mt-0.5" />
+                <span>{registrationSuccessMsg}</span>
+              </div>
+            )}
+
             {/* Error Message */}
             {error && (
-              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
-                {error}
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 
@@ -223,13 +261,35 @@ export default function LoginPage() {
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:border-brand-primary text-sm font-medium transition"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:border-brand-primary text-sm font-medium transition"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {/* Forgot Password Link */}
+                <div className="flex justify-end mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPasswordOpen(true);
+                      setResetSuccess(false);
+                      setResetInput("");
+                    }}
+                    className="text-xs font-semibold text-brand-primary hover:text-brand-deep hover:underline cursor-pointer"
+                  >
+                    {t.forgotPassword}
+                  </button>
                 </div>
               </div>
 
@@ -388,13 +448,20 @@ export default function LoginPage() {
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
-                    type="password"
+                    type={showNewPassword ? "text" : "password"}
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                    className="w-full pl-9 pr-9 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -415,23 +482,111 @@ export default function LoginPage() {
                 </select>
               </div>
 
+              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200/80 text-[11px] text-amber-800 font-medium">
+                ℹ️ {t.registrationSuccessPending}
+              </div>
+
               <div className="pt-2 flex gap-2">
                 <button
                   type="button"
                   onClick={() => setIsSignUpOpen(false)}
-                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs"
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 cursor-pointer"
                 >
                   {t.cancel}
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-brand-primary text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-brand-primary text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
-                  <span>{language === "mr" ? "नोंदणी पूर्ण करा" : "Register"}</span>
+                  <span>{language === "mr" ? "नोंदणी विनंती पाठवा" : "Submit Registration"}</span>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Forgot Password Modal */}
+      {isForgotPasswordOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {t.forgotPasswordModalTitle}
+                  </h3>
+                  <span className="text-[11px] text-slate-400">
+                    {t.forgotPasswordModalSubtitle}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsForgotPasswordOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {resetSuccess ? (
+              <div className="space-y-4 py-2">
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-sm text-emerald-900">
+                    <CheckCircle2 className="w-5 h-5 text-brand-primary shrink-0" />
+                    <span>{language === "mr" ? "विनंती पाठवली!" : "Request Sent!"}</span>
+                  </div>
+                  <p>{t.resetSentMessage}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPasswordOpen(false)}
+                  className="w-full py-2.5 rounded-xl bg-brand-primary text-white font-bold text-xs cursor-pointer"
+                >
+                  {language === "mr" ? "समजले (लॉगिनकडे जा)" : "Got it (Back to Login)"}
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    {language === "mr" ? "नोंदणीकृत ई-मेल / मोबाईल" : "Registered Email or Mobile"} *
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      required
+                      value={resetInput}
+                      onChange={(e) => setResetInput(e.target.value)}
+                      placeholder="user@jaindistributor.in / 98220..."
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPasswordOpen(false)}
+                    className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 cursor-pointer"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-brand-primary text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>{t.sendResetLink}</span>
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
