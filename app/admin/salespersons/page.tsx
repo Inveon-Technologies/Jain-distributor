@@ -6,7 +6,7 @@ import { translations } from "@/data/translations";
 import { formatBilingual } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
 import { Salesperson } from "@/data/mockData";
-import { Users, Phone, Mail, CheckCircle2, XCircle, Plus, X, UserPlus, Check, Trash2, Eye, EyeOff, Clock } from "lucide-react";
+import { Users, Phone, Mail, CheckCircle2, Plus, X, UserPlus, Check, Trash2, Eye, EyeOff, Clock } from "lucide-react";
 
 export default function AdminSalespersonsPage() {
   const { language, salespersons, villages, addSalesperson, deleteSalesperson, toggleSalespersonStatus } = useApp();

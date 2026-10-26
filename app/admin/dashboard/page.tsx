@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
-import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
+import { autoBilingualName } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
 import {
   Users,

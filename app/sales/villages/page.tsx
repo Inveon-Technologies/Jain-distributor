@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { Village } from "@/data/mockData";
-import { formatBilingual } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
 import { MapPin, Store, ArrowRight, CheckCircle2 } from "lucide-react";
 

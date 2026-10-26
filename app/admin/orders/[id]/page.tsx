@@ -4,7 +4,6 @@ import React from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
-import { formatBilingual } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
 import {
   ArrowLeft,
