@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
-import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
+import { autoBilingualName } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
 import { Village } from "@/data/mockData";
 import { MapPin, Plus, X, Check, Trash2 } from "lucide-react";
