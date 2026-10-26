@@ -69,7 +69,7 @@ The API documentation is in [`backend/README.md`](backend/README.md).
 
 1. Add a `## [x.y.z]` section to `CHANGELOG.md` and merge to `main`.
 2. Tag and push: `git tag v1.0.0 && git push origin v1.0.0`.
-3. The **Release** workflow publishes `ghcr.io/inveon-technologies/jain-distributor-web-api:<version>`
+3. The **Release** workflow publishes `ghcr.io/inveon-technologies/jain-distributor-api:<version>`
    and `…-web:<version>`, then creates the GitHub Release from the changelog section.
 4. Optional automatic deploy: set the repository variable `DEPLOY_ENABLED=true`, the secrets
    `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH` (and `DEPLOY_PORT` if not 22),

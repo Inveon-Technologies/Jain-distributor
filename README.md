@@ -1,4 +1,4 @@
-# Jain Distributor – Sales Field Management System (`jain-distributor-web`)
+# Jain Distributor – Sales Field Management System (`jain-distributor`)
 
 **Client:** Jain Distributor, Pandharpur (`jaindistributor.in`)  
 **Prepared by:** Inveon Technologies  

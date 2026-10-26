@@ -7,6 +7,11 @@ notes when the matching `vx.y.z` tag is pushed.
 
 ## [Unreleased]
 
+### Changed
+
+- Repository renamed from `Jain-distributor-web` to `Jain-distributor`. Published images are now
+  `ghcr.io/inveon-technologies/jain-distributor-api` and `…/jain-distributor-web`.
+
 ## [1.0.0] - 2026-10-26
 
 First MVP release (PRD INV-JDS-PRD-01, Phase 1 scope): backend API, containers and CI/CD.
