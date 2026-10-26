@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { Village } from "@/data/mockData";
+import { formatBilingual } from "@/utils/transliterate";
 import { MapPin, Store, ArrowRight, CheckCircle2 } from "lucide-react";
 
 export default function VillagesSelectionPage() {
@@ -59,10 +60,10 @@ export default function VillagesSelectionPage() {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-slate-900 leading-tight">
-                        {village.marathiName}
+                        {formatBilingual(village.marathiName, village.englishName, language)}
                       </h3>
                       <span className="text-xs font-semibold text-slate-400">
-                        {village.englishName} ({village.taluka})
+                        {language === "mr" ? `तालुका: ${village.taluka}` : `Taluka: ${village.taluka}`}
                       </span>
                     </div>
                   </div>
@@ -101,7 +102,7 @@ export default function VillagesSelectionPage() {
                 className="w-full mt-4 py-2.5 px-4 rounded-xl bg-brand-primary hover:bg-brand-deep text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition"
               >
                 <Store className="w-4 h-4" />
-                <span>{language === "mr" ? "दुकान निवडा" : "Select Shops"}</span>
+                <span>{t.selectShop}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

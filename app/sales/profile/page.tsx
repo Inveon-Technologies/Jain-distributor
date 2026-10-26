@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
+import { formatBilingual } from "@/utils/transliterate";
 import {
   User,
   Phone,
@@ -40,7 +41,7 @@ export default function SalesProfilePage() {
               <span>{t.salesRole}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              {language === "mr" ? currentUser?.name || "अमोल पाटील" : currentUser?.nameEn || "Amol Patil"}
+              {formatBilingual(currentUser?.name || "अमोल पाटील", currentUser?.nameEn || "Amol Patil", language)}
             </h1>
             <p className="text-xs sm:text-sm text-emerald-100/90 font-medium flex items-center justify-center sm:justify-start gap-2">
               <Mail className="w-3.5 h-3.5" />
@@ -85,7 +86,7 @@ export default function SalesProfilePage() {
       <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
         <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
           <MapPin className="w-4 h-4 text-brand-primary" />
-          <span>{language === "mr" ? "नेमून दिलेली गावे (Assigned Villages)" : "Assigned Territories"}</span>
+          <span>{t.assignedVillages}</span>
         </h3>
 
         <div className="flex flex-wrap gap-2">
@@ -94,7 +95,7 @@ export default function SalesProfilePage() {
               key={v.id}
               className="px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-brand-primary text-xs font-bold"
             >
-              📍 {v.marathiName} ({v.englishName})
+              📍 {formatBilingual(v.marathiName, v.englishName, language)}
             </span>
           ))}
         </div>

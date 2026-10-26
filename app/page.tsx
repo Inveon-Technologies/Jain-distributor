@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
+import { formatBilingual } from "@/utils/transliterate";
 import { Logo } from "@/components/common/Logo";
 import { LanguageToggle } from "@/components/common/LanguageToggle";
 import {
@@ -158,9 +159,16 @@ export default function LoginPage() {
           </div>
 
           {/* Footer Branding */}
-          <div className="relative z-10 flex items-center justify-between text-xs text-emerald-200/80 pt-4">
-            <span>Client: Jain Distributor, Pandharpur</span>
-            <span className="font-semibold">{t.poweredBy}</span>
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 text-xs text-emerald-200/90 pt-4 border-t border-white/10">
+            <span>{language === "mr" ? "ग्राहक: जैन डिस्ट्रीब्युटर, पंढरपूर" : "Client: Jain Distributor, Pandharpur"}</span>
+            <div className="flex items-center gap-2">
+              <span>{t.poweredBy}</span>
+              <img
+                src="/images/inveon-logo.jpeg"
+                alt="Inveon Technologies"
+                className="h-5 w-auto object-contain rounded bg-white p-0.5"
+              />
+            </div>
           </div>
         </section>
 
@@ -280,6 +288,18 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+
+          {/* Dedicated Inveon Technologies Branding with Logo */}
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <span className="text-xs text-slate-400 font-semibold">
+              {t.poweredBy}
+            </span>
+            <img
+              src="/images/inveon-logo.jpeg"
+              alt="Inveon Technologies"
+              className="h-6 w-auto object-contain rounded"
+            />
+          </div>
         </section>
       </main>
 
@@ -312,7 +332,7 @@ export default function LoginPage() {
             <form onSubmit={handleSalespersonSignUp} className="space-y-3">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  {language === "mr" ? "पूर्ण नाव (Full Name)" : "Full Name"} *
+                  {t.fullNameLabel} *
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -389,7 +409,7 @@ export default function LoginPage() {
                 >
                   {villages.map((v) => (
                     <option key={v.id} value={v.id}>
-                      {v.marathiName} ({v.englishName})
+                      {formatBilingual(v.marathiName, v.englishName, language)}
                     </option>
                   ))}
                 </select>

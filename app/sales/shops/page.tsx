@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { Shop } from "@/data/mockData";
+import { formatBilingual } from "@/utils/transliterate";
 import {
   Store,
   MapPin,
@@ -54,13 +55,10 @@ function ShopsContent() {
           </div>
           <div>
             <span className="text-xs font-bold text-slate-400 uppercase">
-              {language === "mr" ? "निवडलेले गाव" : "Selected Village"}
+              {t.selectVillage}
             </span>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
-              {language === "en" ? currentVillage.englishName : currentVillage.marathiName}{" "}
-              <span className="text-sm font-semibold text-slate-500">
-                ({language === "en" ? currentVillage.marathiName : currentVillage.englishName})
-              </span>
+              {formatBilingual(currentVillage.marathiName, currentVillage.englishName, language)}
             </h1>
           </div>
         </div>
@@ -72,7 +70,7 @@ function ShopsContent() {
             className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>{language === "mr" ? "गाव बदला" : "Switch Village"}</span>
+            <span>{t.switchVillage}</span>
           </button>
 
           <button
@@ -101,14 +99,14 @@ function ShopsContent() {
       {/* Shop Cards Grid */}
       <div className="space-y-3">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">
-          {language === "mr" ? "या गावातील दुकाने" : "Shops in this Village"} ({filteredShops.length})
+          {t.shopsInVillage} ({filteredShops.length})
         </h2>
 
         {filteredShops.length === 0 ? (
           <div className="bg-white p-8 rounded-3xl border border-dashed border-slate-200 text-center space-y-3">
             <Store className="w-10 h-10 text-slate-300 mx-auto" />
             <p className="text-slate-500 text-sm font-medium">
-              {language === "mr" ? "या गावात कोणतीही दुकाने सापडली नाहीत." : "No shops found in this village."}
+              {t.noShopsFound}
             </p>
             <button
               onClick={() => router.push(`/sales/shops/new?village=${currentVillage.id}`)}
@@ -120,8 +118,8 @@ function ShopsContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredShops.map((shop) => {
-              const displayName = language === "en" ? (shop.nameEn || shop.name) : shop.name;
-              const displayOwner = language === "en" ? (shop.ownerEn || shop.owner) : shop.owner;
+              const displayName = formatBilingual(shop.name, shop.nameEn, language);
+              const displayOwner = formatBilingual(shop.owner, shop.ownerEn, language);
               const displayAddress = language === "en" ? (shop.addressEn || shop.address) : shop.address;
 
               return (
@@ -181,7 +179,7 @@ function ShopsContent() {
 
 export default function ShopsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-slate-400">लोड होत आहे...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading...</div>}>
       <ShopsContent />
     </Suspense>
   );

@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
+import { formatBilingual } from "@/utils/transliterate";
 import {
   ClipboardList,
   Store,
@@ -70,11 +71,11 @@ export default function TodayOrdersPage() {
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-slate-900 leading-tight">
-                        {language === "en" ? (shop?.nameEn || shop?.name || "Kirana Store") : (shop?.name || "किराणा दुकान")}
+                        {formatBilingual(shop?.name, shop?.nameEn, language)}
                       </h3>
                       <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-0.5">
                         <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{language === "en" ? (village?.englishName || "Sangola") : (village?.marathiName || "सांगोला")}</span>
+                        <span>{formatBilingual(village?.marathiName, village?.englishName, language)}</span>
                         <span>•</span>
                         <Clock className="w-3.5 h-3.5 text-slate-400" />
                         <span>{order.createdAt}</span>

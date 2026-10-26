@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { Logo } from "@/components/common/Logo";
 import { LanguageToggle } from "@/components/common/LanguageToggle";
+import { formatBilingual } from "@/utils/transliterate";
 import {
   Home,
   MapPin,
@@ -26,14 +27,20 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
   };
 
   const navItems = [
-    { href: "/sales/home", label: language === "mr" ? "मुख्य पान" : "Home", icon: Home },
-    { href: "/sales/villages", label: language === "mr" ? "गाव निवडा" : "Villages", icon: MapPin },
-    { href: "/sales/orders/today", label: language === "mr" ? "आजच्या ऑर्डर्स" : "Today's Orders", icon: ClipboardList },
-    { href: "/sales/profile", label: language === "mr" ? "माझे प्रोफाइल" : "Profile", icon: User },
+    { href: "/sales/home", label: t.home, icon: Home },
+    { href: "/sales/villages", label: t.villages, icon: MapPin },
+    { href: "/sales/orders/today", label: t.todayOrders, icon: ClipboardList },
+    { href: "/sales/profile", label: t.profile, icon: User },
   ];
 
+  const salespersonDisplayName = formatBilingual(
+    currentUser?.name || "अमोल पाटील",
+    currentUser?.nameEn || "Amol Patil",
+    language
+  );
+
   return (
-    <div className="min-h-screen bg-[#f7faf8] flex flex-col text-slate-800">
+    <div className="min-h-screen bg-[#e8eee9] flex flex-col text-slate-800">
       {/* Top Header */}
       <header className="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center justify-between h-16 sm:h-20">
@@ -54,9 +61,9 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
                 </div>
                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
               </div>
-              <div className="hidden sm:flex flex-col leading-tight">
-                <span className="text-xs font-bold text-slate-900">
-                  {language === "mr" ? currentUser?.name || "अमोल पाटील" : currentUser?.nameEn || "Amol Patil"}
+              <div className="hidden sm:flex flex-col leading-tight max-w-[200px]">
+                <span className="text-xs font-bold text-slate-900 truncate" title={salespersonDisplayName}>
+                  {salespersonDisplayName}
                 </span>
                 <span className="text-[10px] text-emerald-700 font-semibold">
                   {t.salesRole}

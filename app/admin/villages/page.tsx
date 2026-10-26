@@ -3,28 +3,32 @@
 import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
-import { MapPin, Plus } from "lucide-react";
+import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
+import { MapPin, Plus, X, Check } from "lucide-react";
 
 export default function AdminVillagesPage() {
   const { language, villages, addVillage } = useApp();
   const t = translations[language];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [mName, setMName] = useState("");
-  const [eName, setEName] = useState("");
+  const [vName, setVName] = useState("");
   const [taluka, setTaluka] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mName.trim()) return;
+    if (!vName.trim()) return;
+
+    const vPair = autoBilingualName(vName);
+    const talukaPair = autoBilingualName(taluka || (language === "mr" ? "पंढरपूर" : "Pandharpur"));
+
     addVillage({
-      marathiName: mName.trim(),
-      englishName: eName.trim() || mName.trim(),
-      taluka: taluka.trim() || "Pandharpur",
-      district: "Solapur",
+      marathiName: vPair.mr,
+      englishName: vPair.en,
+      taluka: language === "mr" ? talukaPair.mr : talukaPair.en,
+      district: language === "mr" ? "सोलापूर" : "Solapur",
     });
-    setMName("");
-    setEName("");
+
+    setVName("");
     setTaluka("");
     setIsModalOpen(false);
   };
@@ -34,7 +38,7 @@ export default function AdminVillagesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight">
-            {language === "mr" ? "गावे व्यवस्थापन" : "Villages Management"}
+            {t.villages}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
             {language === "mr"
@@ -46,7 +50,7 @@ export default function AdminVillagesPage() {
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2.5 rounded-xl bg-brand-primary hover:bg-brand-deep text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-xs transition self-start sm:self-auto"
+          className="px-4 py-2.5 rounded-xl bg-brand-primary hover:bg-brand-deep text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-xs transition self-start sm:self-auto cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>{t.addVillageBtn}</span>
@@ -65,10 +69,10 @@ export default function AdminVillagesPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900 leading-tight">
-                  {v.marathiName}
+                  {formatBilingual(v.marathiName, v.englishName, language)}
                 </h3>
                 <span className="text-xs text-slate-400 font-medium">
-                  {v.englishName} • {v.taluka}, {v.district}
+                  {language === "mr" ? `${v.taluka}, सोलापूर` : `${v.taluka}, Solapur`}
                 </span>
               </div>
             </div>
@@ -76,7 +80,7 @@ export default function AdminVillagesPage() {
             <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100 text-center text-xs">
               <div className="bg-slate-50 p-2 rounded-xl">
                 <span className="text-slate-400 block font-medium">
-                  {language === "mr" ? "दुकाने" : "Shops"}
+                  {t.shops}
                 </span>
                 <span className="text-base font-extrabold text-slate-800">
                   {v.shopsCount}
@@ -84,7 +88,7 @@ export default function AdminVillagesPage() {
               </div>
               <div className="bg-slate-50 p-2 rounded-xl">
                 <span className="text-slate-400 block font-medium">
-                  {language === "mr" ? "भेटी" : "Visits"}
+                  {t.visits}
                 </span>
                 <span className="text-base font-extrabold text-slate-800">
                   {v.visitsToday}
@@ -92,7 +96,7 @@ export default function AdminVillagesPage() {
               </div>
               <div className="bg-slate-50 p-2 rounded-xl">
                 <span className="text-slate-400 block font-medium">
-                  {language === "mr" ? "ऑर्डर्स" : "Orders"}
+                  {t.orders}
                 </span>
                 <span className="text-base font-extrabold text-brand-primary">
                   {v.ordersToday}
@@ -103,65 +107,74 @@ export default function AdminVillagesPage() {
         ))}
       </div>
 
-      {/* Modal */}
+      {/* Add Village Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4">
-            <h3 className="text-xl font-bold text-slate-900">{t.addVillageBtn}</h3>
-            <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-brand-primary flex items-center justify-center font-bold">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {t.newVillageModalTitle}
+                  </h3>
+                  <span className="text-[11px] text-slate-400">
+                    {t.newVillageModalSubtitle}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  गाव नाव (मराठीत) *
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                  {t.villageNameLabel} *
                 </label>
                 <input
                   type="text"
                   required
-                  value={mName}
-                  onChange={(e) => setMName(e.target.value)}
-                  placeholder="उदा. करकंब"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                  value={vName}
+                  onChange={(e) => setVName(e.target.value)}
+                  placeholder={t.villageNamePlaceholder}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Village Name (in English)
-                </label>
-                <input
-                  type="text"
-                  value={eName}
-                  onChange={(e) => setEName(e.target.value)}
-                  placeholder="e.g. Karkamb"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  तालुका (Taluka)
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                  {t.talukaLabel}
                 </label>
                 <input
                   type="text"
                   value={taluka}
                   onChange={(e) => setTaluka(e.target.value)}
-                  placeholder="उदा. पंढरपूर"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                  placeholder={t.talukaPlaceholder}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
                 />
               </div>
 
-              <div className="pt-3 flex gap-2">
+              <div className="pt-2 flex gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs"
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50"
                 >
                   {t.cancel}
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-brand-primary text-white font-bold text-xs"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-brand-primary hover:bg-brand-deep text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  {t.save}
+                  <Check className="w-4 h-4" />
+                  <span>{t.saveVillageBtn}</span>
                 </button>
               </div>
             </form>

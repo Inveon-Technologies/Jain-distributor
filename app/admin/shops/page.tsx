@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
+import { formatBilingual } from "@/utils/transliterate";
 import { Store, MapPin, Phone, Search } from "lucide-react";
 
 export default function AdminShopsPage() {
@@ -29,17 +30,17 @@ export default function AdminShopsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight">
-            {language === "mr" ? "दुकाने व्यवस्थापन" : "Retail Shops Management"}
+            {t.shops}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
             {language === "mr"
-              ? "सर्व गावातील नोंदणीकृत किराणा दुकानांची माहिती व शिल्लक व्यवस्थापित करा."
-              : "Manage partner retail kirana stores, owner contacts, and credit balances."}
+              ? "सर्व गावांतील नोंदणीकृत किराणा दुकानांची माहिती व संपर्क व्यवस्थापित करा."
+              : "Manage partner retail kirana stores, owner contacts, and locations."}
           </p>
         </div>
 
-        <span className="px-3.5 py-1.5 rounded-full bg-emerald-50 text-brand-primary border border-emerald-200 text-xs font-bold self-start sm:self-auto">
-          {shops.length} {language === "mr" ? "नोंदणीकृत दुकाने" : "Registered Stores"}
+        <span className="px-3.5 py-1.5 rounded-full bg-white text-brand-primary border border-slate-200 text-xs font-bold self-start sm:self-auto shadow-xs">
+          {shops.length} {t.totalStoresCount}
         </span>
       </div>
 
@@ -64,11 +65,11 @@ export default function AdminShopsPage() {
           className="px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
         >
           <option value="ALL">
-            {language === "mr" ? "सर्व गावे (All Villages)" : "All Villages"}
+            {t.allVillages}
           </option>
           {villages.map((v) => (
             <option key={v.id} value={v.id}>
-              {v.marathiName} ({v.englishName})
+              {formatBilingual(v.marathiName, v.englishName, language)}
             </option>
           ))}
         </select>
@@ -90,26 +91,20 @@ export default function AdminShopsPage() {
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-slate-900 leading-tight">
-                      {language === "en" ? (s.nameEn || s.name) : s.name}
+                      {formatBilingual(s.name, s.nameEn, language)}
                     </h3>
                     <span className="text-xs text-slate-500 font-medium">
-                      {language === "en" ? (s.ownerEn || s.owner) : s.owner}
+                      {t.shopOwner}: {formatBilingual(s.owner, s.ownerEn, language)}
                     </span>
                   </div>
                 </div>
-
-                {s.outstandingBalance > 0 && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
-                    ₹{s.outstandingBalance}
-                  </span>
-                )}
               </div>
 
               <div className="space-y-1.5 pt-3 border-t border-slate-100 text-xs text-slate-600">
                 <p className="flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>
-                    <strong>{language === "en" ? (v?.englishName || v?.marathiName) : v?.marathiName}</strong> • {language === "en" ? (s.addressEn || s.address) : s.address}
+                    <strong>{formatBilingual(v?.marathiName, v?.englishName, language)}</strong> • {language === "en" ? (s.addressEn || s.address) : s.address}
                   </span>
                 </p>
                 <p className="flex items-center gap-1.5">

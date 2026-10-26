@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
+import { formatBilingual } from "@/utils/transliterate";
 import {
   ArrowLeft,
   Store,
@@ -104,7 +105,7 @@ export default function OrderDetailsPage() {
                 {language === "mr" ? "दुकानाचे नाव" : "Shop Name"}
               </span>
               <strong className="text-slate-900 font-bold block mt-0.5">
-                {language === "en" ? (shop?.nameEn || shop?.name || "Shri Ganesh Kirana Stores") : (shop?.name || "श्री गणेश किराणा स्टोअर्स")}
+                {formatBilingual(shop?.name, shop?.nameEn, language)}
               </strong>
             </div>
 
@@ -113,7 +114,7 @@ export default function OrderDetailsPage() {
                 {language === "mr" ? "गाव" : "Village"}
               </span>
               <span className="text-slate-800 font-bold block mt-0.5">
-                {language === "en" ? `${village?.englishName} (${village?.marathiName})` : `${village?.marathiName} (${village?.englishName})`}
+                {formatBilingual(village?.marathiName, village?.englishName, language)}
               </span>
             </div>
 
@@ -122,7 +123,7 @@ export default function OrderDetailsPage() {
                 {language === "mr" ? "मालक / संपर्क" : "Owner / Mobile"}
               </span>
               <span className="text-slate-800 font-semibold block mt-0.5">
-                {language === "en" ? (shop?.ownerEn || shop?.owner) : shop?.owner} • {shop?.mobile}
+                {formatBilingual(shop?.owner, shop?.ownerEn, language)} • {shop?.mobile}
               </span>
             </div>
 
@@ -139,7 +140,7 @@ export default function OrderDetailsPage() {
 
         {/* Card 2: Salesperson Information */}
         <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs space-y-4">
-          <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-3 pb-3 border-slate-100 border-b">
             <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
               <User className="w-5 h-5" />
             </div>
@@ -156,7 +157,7 @@ export default function OrderDetailsPage() {
                 {language === "mr" ? "नाव" : "Salesperson Name"}
               </span>
               <strong className="text-slate-900 font-bold block mt-0.5">
-                {salesperson?.name || "अमोल पाटील"} ({salesperson?.nameEn || "Amol Patil"})
+                {formatBilingual(salesperson?.name, salesperson?.nameEn, language)}
               </strong>
             </div>
 

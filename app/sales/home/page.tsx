@@ -4,12 +4,28 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
+import { formatBilingual } from "@/utils/transliterate";
 import { MapPin, Store, Mic, ArrowRight, TrendingUp } from "lucide-react";
 
 export default function SalesHomePage() {
   const router = useRouter();
   const { language, currentUser, orders, selectedVillage } = useApp();
   const t = translations[language];
+
+  // Dynamic time-based greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return t.greetingMorning;
+    if (hour >= 12 && hour < 17) return t.greetingAfternoon;
+    if (hour >= 17 && hour < 21) return t.greetingEvening;
+    return t.greetingNight;
+  };
+
+  const salespersonName = formatBilingual(
+    currentUser?.name || "अमोल पाटील",
+    currentUser?.nameEn || "Amol Patil",
+    language
+  );
 
   // Count orders taken today by current user
   const todayOrdersCount = orders.filter((o) => o.salespersonId === currentUser?.id).length;
@@ -20,7 +36,7 @@ export default function SalesHomePage() {
       <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight flex items-center gap-2">
-            <span>{t.salesWelcome}, {language === "mr" ? currentUser?.name : currentUser?.nameEn}!</span>
+            <span>{getGreeting()}, {salespersonName}!</span>
             <span className="text-2xl animate-bounce">👋</span>
           </h1>
           <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">
@@ -35,7 +51,7 @@ export default function SalesHomePage() {
           </div>
           <div>
             <span className="block text-[11px] font-bold text-slate-400 uppercase">
-              {language === "mr" ? "आजच्या ऑर्डर्स" : "Orders Today"}
+              {t.todayOrdersTitle}
             </span>
             <span className="text-lg font-black text-brand-dark">
               {todayOrdersCount} {language === "mr" ? "नोंदवल्या" : "Recorded"}

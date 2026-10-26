@@ -13,11 +13,11 @@
 
 body {
   color: var(--foreground);
-  background-color: #f0f5f2;
+  background-color: #e6ede7;
   background-image: 
-    radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.09) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, rgba(217, 119, 6, 0.05) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(244, 249, 246, 0.8) 0px, #edf3ef 100%);
+    radial-gradient(at 100% 0%, rgba(8, 72, 38, 0.08) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(217, 119, 6, 0.06) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(240, 246, 241, 0.9) 0px, #e4eae5 100%);
   background-attachment: fixed;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

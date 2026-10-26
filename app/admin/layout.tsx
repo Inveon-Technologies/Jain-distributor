@@ -36,33 +36,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navLinks = [
     {
       href: "/admin/dashboard",
-      label: language === "mr" ? "डॅशबोर्ड" : "Dashboard",
+      label: t.dashboard,
       icon: LayoutDashboard,
     },
     {
       href: "/admin/salespersons",
-      label: language === "mr" ? "सेल्समन" : "Salespersons",
+      label: t.salespersons,
       icon: Users,
     },
     {
       href: "/admin/villages",
-      label: language === "mr" ? "गावे (Villages)" : "Villages",
+      label: t.villages,
       icon: MapPin,
     },
     {
       href: "/admin/shops",
-      label: language === "mr" ? "दुकाने (Shops)" : "Shops",
+      label: t.shops,
       icon: Store,
     },
     {
       href: "/admin/orders",
-      label: language === "mr" ? "ऑर्डर्स (Orders)" : "Orders",
+      label: t.orders,
       icon: ClipboardList,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8faf8] text-slate-800 flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-[#e8eee9] text-slate-800 flex flex-col lg:flex-row">
       {/* Mobile Backdrop */}
       {isMobileMenuOpen && (
         <div
@@ -94,7 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Navigation Links */}
           <div className="px-4 py-5">
             <span className="px-3 text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-3 block">
-              {language === "mr" ? "मुख्य मेनू" : "Main Navigation"}
+              {t.mainMenu}
             </span>
             <nav className="space-y-1.5">
               {navLinks.map((link) => {
@@ -123,13 +123,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        {/* Sidebar Footer */}
-        <div className="p-5 border-t border-slate-100">
+        {/* Sidebar Footer with Inveon Logo */}
+        <div className="p-4 border-t border-slate-100 bg-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-[11px] font-semibold text-slate-400">
-                {t.poweredBy}
+              <img
+                src="/images/inveon-logo.jpeg"
+                alt="Inveon Technologies"
+                className="h-5 w-auto object-contain rounded"
+              />
+              <span className="text-[11px] font-semibold text-slate-500">
+                Inveon Technologies
               </span>
             </div>
             <button
@@ -144,7 +148,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#e8eee9]">
         {/* Top Header */}
         <header className="h-16 sm:h-20 bg-white border-b border-slate-200/80 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-xs">
           {/* Left: Mobile hamburger + breadcrumb */}
@@ -157,15 +161,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
 
             <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-              <span className="text-slate-400">Jain Distributor</span>
+              <span className="text-slate-400">{t.brandName}</span>
               <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-              <span className="text-brand-dark font-bold capitalize">
-                {pathname.replace("/admin/", "").replace("/", " ") || "Dashboard"}
+              <span className="text-brand-dark font-bold">
+                {pathname.includes("/admin/dashboard") && t.dashboard}
+                {pathname.includes("/admin/salespersons") && t.salespersons}
+                {pathname.includes("/admin/villages") && t.villages}
+                {pathname.includes("/admin/shops") && t.shops}
+                {pathname.includes("/admin/orders") && t.orders}
               </span>
             </div>
           </div>
 
-          {/* Right: Language Switcher, Notifications, Admin Profile */}
+          {/* Right: Language Switcher, Notifications, Admin Profile, Logout */}
           <div className="flex items-center gap-3 sm:gap-5">
             <LanguageToggle />
 
@@ -182,10 +190,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
               <div className="hidden md:flex flex-col leading-tight">
                 <span className="text-xs font-bold text-slate-900">
-                  {language === "mr" ? "व्यवस्थापक" : "Administrator"}
+                  {t.adminRole}
                 </span>
                 <span className="text-[10px] text-slate-400 font-semibold">
-                  Pandharpur HO
+                  {t.pandharpur}
                 </span>
               </div>
             </div>

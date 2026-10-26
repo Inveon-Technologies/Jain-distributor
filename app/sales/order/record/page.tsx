@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
+import { formatBilingual } from "@/utils/transliterate";
 import {
   Mic,
   Store,
@@ -85,14 +86,14 @@ function RecordOrderContent() {
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-              {language === "en" ? (currentShop.nameEn || currentShop.name) : currentShop.name}
+              {formatBilingual(currentShop.name, currentShop.nameEn, language)}
             </h2>
             <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-0.5">
               <MapPin className="w-3.5 h-3.5 text-emerald-600" />
               <span>
                 {language === "mr" ? "गाव" : "Village"}:{" "}
                 <strong className="text-slate-700">
-                  {language === "en" ? currentVillage.englishName : currentVillage.marathiName}
+                  {formatBilingual(currentVillage.marathiName, currentVillage.englishName, language)}
                 </strong>
               </span>
             </div>

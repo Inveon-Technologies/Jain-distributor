@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
+import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
 import {
   Users,
   MapPin,
@@ -20,23 +21,34 @@ export default function AdminDashboardPage() {
   const { language, villages, salespersons, orders, addVillage } = useApp();
   const t = translations[language];
 
+  // Dynamic time-based greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return t.greetingMorning;
+    if (hour >= 12 && hour < 17) return t.greetingAfternoon;
+    if (hour >= 17 && hour < 21) return t.greetingEvening;
+    return t.greetingNight;
+  };
+
   // Modal state for adding a village
   const [isAddVillageOpen, setIsAddVillageOpen] = useState(false);
-  const [vMarathi, setVMarathi] = useState("");
-  const [vEnglish, setVEnglish] = useState("");
+  const [vName, setVName] = useState("");
   const [vTaluka, setVTaluka] = useState("");
 
   const handleAddVillage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!vMarathi.trim()) return;
+    if (!vName.trim()) return;
+
+    const vPair = autoBilingualName(vName);
+    const talukaPair = autoBilingualName(vTaluka || (language === "mr" ? "पंढरपूर" : "Pandharpur"));
+
     addVillage({
-      marathiName: vMarathi.trim(),
-      englishName: vEnglish.trim() || vMarathi.trim(),
-      taluka: vTaluka.trim() || "Pandharpur",
-      district: "Solapur",
+      marathiName: vPair.mr,
+      englishName: vPair.en,
+      taluka: language === "mr" ? talukaPair.mr : talukaPair.en,
+      district: language === "mr" ? "सोलापूर" : "Solapur",
     });
-    setVMarathi("");
-    setVEnglish("");
+    setVName("");
     setVTaluka("");
     setIsAddVillageOpen(false);
   };
@@ -48,7 +60,7 @@ export default function AdminDashboardPage() {
       {/* Greeting Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight">
-          {t.adminGreeting}
+          {getGreeting()}, {t.adminRole}!
         </h1>
         <p className="text-sm text-slate-500 font-medium mt-1">
           {t.adminOverview}
@@ -152,16 +164,16 @@ export default function AdminDashboardPage() {
               <thead>
                 <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-100">
                   <th className="py-3 px-3 rounded-l-xl">
-                    {language === "mr" ? "गाव (Village)" : "Village"}
+                    {t.villages}
                   </th>
                   <th className="py-3 px-3 text-center">
-                    {language === "mr" ? "भेटी" : "Visits"}
+                    {t.visits}
                   </th>
                   <th className="py-3 px-3 text-center">
-                    {language === "mr" ? "दुकाने" : "Shops"}
+                    {t.shops}
                   </th>
                   <th className="py-3 px-3 text-center rounded-r-xl">
-                    {language === "mr" ? "ऑर्डर्स" : "Orders Taken"}
+                    {t.orders}
                   </th>
                 </tr>
               </thead>
@@ -169,10 +181,7 @@ export default function AdminDashboardPage() {
                 {villages.map((v) => (
                   <tr key={v.id} className="hover:bg-slate-50/60 transition">
                     <td className="py-3 px-3 font-bold text-slate-900">
-                      {v.marathiName}{" "}
-                      <span className="text-xs font-normal text-slate-400">
-                        ({v.englishName})
-                      </span>
+                      {formatBilingual(v.marathiName, v.englishName, language)}
                     </td>
                     <td className="py-3 px-3 text-center font-semibold">{v.visitsToday}</td>
                     <td className="py-3 px-3 text-center font-semibold">{v.shopsCount}</td>
@@ -197,15 +206,15 @@ export default function AdminDashboardPage() {
                 <span>{t.salespersonActivityTable}</span>
               </h2>
               <span className="text-xs text-slate-400 font-medium">
-                {language === "mr" ? "फील्ड सेल्समन दैनिक स्थिती" : "Daily field team performance"}
+                {t.salespersonActivityTable}
               </span>
             </div>
 
             <button
               onClick={() => router.push("/admin/salespersons")}
-              className="text-xs font-bold text-brand-primary hover:underline flex items-center gap-1"
+              className="text-xs font-bold text-brand-primary hover:underline flex items-center gap-1 cursor-pointer"
             >
-              <span>{language === "mr" ? "सर्व पहा" : "View All"}</span>
+              <span>{t.viewAll}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -215,16 +224,16 @@ export default function AdminDashboardPage() {
               <thead>
                 <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-100">
                   <th className="py-3 px-3 rounded-l-xl">
-                    {language === "mr" ? "नाव" : "Name"}
+                    {t.name}
                   </th>
                   <th className="py-3 px-3 text-center">
-                    {language === "mr" ? "स्थिती" : "Status"}
+                    {t.status}
                   </th>
                   <th className="py-3 px-3 text-center">
-                    {language === "mr" ? "भेटी" : "Visits"}
+                    {t.visits}
                   </th>
                   <th className="py-3 px-3 text-center rounded-r-xl">
-                    {language === "mr" ? "ऑर्डर्स" : "Orders"}
+                    {t.orders}
                   </th>
                 </tr>
               </thead>
@@ -232,10 +241,7 @@ export default function AdminDashboardPage() {
                 {salespersons.map((sp) => (
                   <tr key={sp.id} className="hover:bg-slate-50/60 transition">
                     <td className="py-3 px-3 font-bold text-slate-900">
-                      {sp.name}
-                      <span className="block text-[11px] font-normal text-slate-400">
-                        {sp.nameEn}
-                      </span>
+                      {formatBilingual(sp.name, sp.nameEn, language)}
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span
@@ -319,63 +325,55 @@ export default function AdminDashboardPage() {
       {isAddVillageOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
-            <h3 className="text-xl font-bold text-slate-900">
-              {t.addVillageBtn}
-            </h3>
-            <form onSubmit={handleAddVillage} className="space-y-3">
+            <div>
+              <h3 className="text-xl font-bold text-slate-900">
+                {t.newVillageModalTitle}
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                {t.newVillageModalSubtitle}
+              </p>
+            </div>
+            <form onSubmit={handleAddVillage} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  गाव नाव (मराठीत) *
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                  {t.villageNameLabel} *
                 </label>
                 <input
                   type="text"
                   required
-                  value={vMarathi}
-                  onChange={(e) => setVMarathi(e.target.value)}
-                  placeholder="उदा. करकंब"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                  value={vName}
+                  onChange={(e) => setVName(e.target.value)}
+                  placeholder={t.villageNamePlaceholder}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Village Name (in English)
-                </label>
-                <input
-                  type="text"
-                  value={vEnglish}
-                  onChange={(e) => setVEnglish(e.target.value)}
-                  placeholder="e.g. Karkamb"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  तालुका (Taluka)
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                  {t.talukaLabel}
                 </label>
                 <input
                   type="text"
                   value={vTaluka}
                   onChange={(e) => setVTaluka(e.target.value)}
-                  placeholder="उदा. पंढरपूर"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                  placeholder={t.talukaPlaceholder}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
                 />
               </div>
 
-              <div className="pt-3 flex gap-2">
+              <div className="pt-2 flex gap-3">
                 <button
                   type="button"
                   onClick={() => setIsAddVillageOpen(false)}
-                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs"
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50"
                 >
                   {t.cancel}
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-brand-primary text-white font-bold text-xs shadow-sm"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-brand-primary hover:bg-brand-deep text-white font-bold text-xs shadow-sm cursor-pointer"
                 >
-                  {t.save}
+                  {t.saveVillageBtn}
                 </button>
               </div>
             </form>

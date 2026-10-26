@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
+import { autoBilingualName } from "@/utils/transliterate";
 import {
   INITIAL_SALESPERSONS,
   INITIAL_VILLAGES,
@@ -43,6 +44,14 @@ interface AppContextType {
   setSelectedShop: (s: Shop | null) => void;
   addShop: (newShop: Omit<Shop, "id">) => Shop;
   addVillage: (newVillage: { marathiName: string; englishName: string; taluka: string; district: string }) => Village;
+  addSalesperson: (data: {
+    name: string;
+    nameEn?: string;
+    email: string;
+    mobile: string;
+    assignedVillages?: string[];
+    status?: "ACTIVE" | "INACTIVE";
+  }) => Salesperson;
   createOrder: (orderData: {
     shopId: string;
     villageId: string;
@@ -107,10 +116,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const registerSalesperson = ({ name, email, mobile }: { name: string; email: string; mobile: string }) => {
     const id = `sp-${salespersons.length + 1}`;
+    const bilingual = autoBilingualName(name);
     const newSp: Salesperson = {
       id,
-      name,
-      nameEn: name,
+      name: bilingual.mr || name,
+      nameEn: bilingual.en || name,
       email,
       mobile: mobile || "+91 98000 00000",
       status: "ACTIVE",
@@ -130,6 +140,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
     setLanguage("mr");
     return { success: true };
+  };
+
+  const addSalesperson = ({
+    name,
+    nameEn,
+    email,
+    mobile,
+    assignedVillages = ["v-1"],
+    status = "ACTIVE",
+  }: {
+    name: string;
+    nameEn?: string;
+    email: string;
+    mobile: string;
+    assignedVillages?: string[];
+    status?: "ACTIVE" | "INACTIVE";
+  }) => {
+    const id = `sp-${salespersons.length + 1}`;
+    const bilingual = autoBilingualName(name);
+    const finalMr = bilingual.mr || name;
+    const finalEn = nameEn || bilingual.en || name;
+
+    const created: Salesperson = {
+      id,
+      name: finalMr,
+      nameEn: finalEn,
+      email: email.trim().toLowerCase(),
+      mobile: mobile || "+91 98000 00000",
+      status,
+      todayVisits: 0,
+      todayOrders: 0,
+      assignedVillages,
+    };
+
+    setSalespersons((prev) => [...prev, created]);
+    return created;
   };
 
   const logout = () => {
@@ -233,6 +279,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setSelectedShop,
         addShop,
         addVillage,
+        addSalesperson,
         createOrder,
       }}
     >

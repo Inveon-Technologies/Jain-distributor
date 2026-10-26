@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
+import { formatBilingual } from "@/utils/transliterate";
 import {
   Search,
   MapPin,
@@ -78,11 +79,11 @@ export default function AdminOrdersPage() {
             className="px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
           >
             <option value="ALL">
-              {language === "mr" ? "सर्व गावे (All Villages)" : "All Villages"}
+              {t.allVillages}
             </option>
             {villages.map((v) => (
               <option key={v.id} value={v.id}>
-                {v.marathiName} ({v.englishName})
+                {formatBilingual(v.marathiName, v.englishName, language)}
               </option>
             ))}
           </select>
@@ -95,12 +96,12 @@ export default function AdminOrdersPage() {
           <table className="w-full text-left text-xs sm:text-sm">
             <thead>
               <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-100">
-                <th className="py-3.5 px-4">Order ID</th>
+                <th className="py-3.5 px-4">{t.orderIdLabel}</th>
                 <th className="py-3.5 px-4">{language === "mr" ? "दुकान / गाव" : "Shop / Village"}</th>
-                <th className="py-3.5 px-4">{language === "mr" ? "सेल्समन" : "Salesperson"}</th>
-                <th className="py-3.5 px-4">{language === "mr" ? "व्हॉईस मजकूर (Transcript)" : "Voice Transcript"}</th>
-                <th className="py-3.5 px-4">{language === "mr" ? "स्थिती" : "Status"}</th>
-                <th className="py-3.5 px-4 text-center">{language === "mr" ? "क्रिया" : "Action"}</th>
+                <th className="py-3.5 px-4">{t.salespersons}</th>
+                <th className="py-3.5 px-4">{t.recordedTextLabel}</th>
+                <th className="py-3.5 px-4">{t.status}</th>
+                <th className="py-3.5 px-4 text-center">{t.action}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
@@ -120,18 +121,18 @@ export default function AdminOrdersPage() {
 
                     <td className="py-3.5 px-4">
                       <strong className="text-slate-900 block font-bold">
-                        {language === "en" ? (shop?.nameEn || shop?.name || "Shop") : (shop?.name || "दुकान")}
+                        {formatBilingual(shop?.name, shop?.nameEn, language)}
                       </strong>
                       <span className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
                         <MapPin className="w-3 h-3 text-emerald-600" />
                         <span>
-                          {language === "en" ? (village?.englishName || "Sangola") : (village?.marathiName || "सांगोला")}
+                          {formatBilingual(village?.marathiName, village?.englishName, language)}
                         </span>
                       </span>
                     </td>
 
                     <td className="py-3.5 px-4 font-semibold text-slate-800">
-                      {language === "en" ? (sp?.nameEn || sp?.name || "Amol Patil") : (sp?.name || "अमोल पाटील")}
+                      {formatBilingual(sp?.name, sp?.nameEn, language)}
                     </td>
 
                     <td className="py-3.5 px-4 max-w-xs">
@@ -151,9 +152,9 @@ export default function AdminOrdersPage() {
                       <button
                         type="button"
                         onClick={() => router.push(`/admin/orders/${order.id}`)}
-                        className="px-3 py-1.5 rounded-xl border border-brand-primary text-brand-primary hover:bg-emerald-50 font-bold text-xs flex items-center gap-1 mx-auto transition"
+                        className="px-3 py-1.5 rounded-xl border border-brand-primary text-brand-primary hover:bg-emerald-50 font-bold text-xs flex items-center gap-1 mx-auto transition cursor-pointer"
                       >
-                        <span>{language === "mr" ? "तपशील" : "View"}</span>
+                        <span>{t.viewDetails}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     </td>

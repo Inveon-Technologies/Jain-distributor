@@ -4,6 +4,7 @@ import React, { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
+import { formatBilingual } from "@/utils/transliterate";
 import { CheckCircle2, Store, ClipboardList } from "lucide-react";
 
 function OrderSuccessContent() {
@@ -56,9 +57,7 @@ function OrderSuccessContent() {
           <div className="flex justify-between">
             <span className="text-slate-500">{language === "mr" ? "दुकान" : "Shop"}:</span>
             <strong className="text-slate-900">
-              {language === "en"
-                ? (orderShop?.nameEn || orderShop?.name || "Shri Ganesh Kirana Stores")
-                : (orderShop?.name || "श्री गणेश किराणा स्टोअर्स")}
+              {formatBilingual(orderShop?.name, orderShop?.nameEn, language)}
             </strong>
           </div>
           <div className="flex justify-between">
