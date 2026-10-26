@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { formatBilingual } from "@/utils/transliterate";
+import { BilingualName } from "@/components/common/BilingualName";
 import {
   User,
   Phone,
@@ -41,7 +42,11 @@ export default function SalesProfilePage() {
               <span>{t.salesRole}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              {formatBilingual(currentUser?.name || "अमोल पाटील", currentUser?.nameEn || "Amol Patil", language)}
+              <BilingualName
+                mr={currentUser?.name || "अमोल पाटील"}
+                en={currentUser?.nameEn || "Amol Patil"}
+                secondaryClassName="text-base sm:text-lg font-normal text-emerald-200 ml-2"
+              />
             </h1>
             <p className="text-xs sm:text-sm text-emerald-100/90 font-medium flex items-center justify-center sm:justify-start gap-2">
               <Mail className="w-3.5 h-3.5" />
@@ -93,9 +98,14 @@ export default function SalesProfilePage() {
           {villages.slice(0, 3).map((v) => (
             <span
               key={v.id}
-              className="px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-brand-primary text-xs font-bold"
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-brand-primary text-xs font-bold flex items-center gap-1"
             >
-              📍 {formatBilingual(v.marathiName, v.englishName, language)}
+              <span>📍</span>
+              <BilingualName
+                mr={v.marathiName}
+                en={v.englishName}
+                secondaryClassName="text-[11px] font-normal text-slate-500 ml-1"
+              />
             </span>
           ))}
         </div>

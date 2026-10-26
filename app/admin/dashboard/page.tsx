@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
+import { BilingualName } from "@/components/common/BilingualName";
 import {
   Users,
   MapPin,
@@ -181,7 +182,11 @@ export default function AdminDashboardPage() {
                 {villages.map((v) => (
                   <tr key={v.id} className="hover:bg-slate-50/60 transition">
                     <td className="py-3 px-3 font-bold text-slate-900">
-                      {formatBilingual(v.marathiName, v.englishName, language)}
+                      <BilingualName
+                        mr={v.marathiName}
+                        en={v.englishName}
+                        secondaryClassName="text-xs font-normal text-slate-500 ml-1.5"
+                      />
                     </td>
                     <td className="py-3 px-3 text-center font-semibold">{v.visitsToday}</td>
                     <td className="py-3 px-3 text-center font-semibold">{v.shopsCount}</td>
@@ -241,7 +246,11 @@ export default function AdminDashboardPage() {
                 {salespersons.map((sp) => (
                   <tr key={sp.id} className="hover:bg-slate-50/60 transition">
                     <td className="py-3 px-3 font-bold text-slate-900">
-                      {formatBilingual(sp.name, sp.nameEn, language)}
+                      <BilingualName
+                        mr={sp.name}
+                        en={sp.nameEn}
+                        secondaryClassName="text-xs font-normal text-slate-500 ml-1.5"
+                      />
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span

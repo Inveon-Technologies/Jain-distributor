@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { formatBilingual } from "@/utils/transliterate";
+import { BilingualName } from "@/components/common/BilingualName";
 import { CheckCircle2, Store, ClipboardList } from "lucide-react";
 
 function OrderSuccessContent() {
@@ -54,11 +55,14 @@ function OrderSuccessContent() {
 
         {/* Shop details */}
         <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <span className="text-slate-500">{language === "mr" ? "दुकान" : "Shop"}:</span>
-            <strong className="text-slate-900">
-              {formatBilingual(orderShop?.name, orderShop?.nameEn, language)}
-            </strong>
+            <BilingualName
+              mr={orderShop?.name}
+              en={orderShop?.nameEn}
+              className="text-slate-900 font-bold"
+              secondaryClassName="text-xs font-normal text-slate-500 ml-1.5"
+            />
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">{language === "mr" ? "एकूण साहित्य" : "Total Items"}:</span>

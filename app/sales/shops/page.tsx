@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { Shop } from "@/data/mockData";
 import { formatBilingual } from "@/utils/transliterate";
+import { BilingualName } from "@/components/common/BilingualName";
 import {
   Store,
   MapPin,
@@ -58,7 +59,11 @@ function ShopsContent() {
               {t.selectVillage}
             </span>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
-              {formatBilingual(currentVillage.marathiName, currentVillage.englishName, language)}
+              <BilingualName
+                mr={currentVillage.marathiName}
+                en={currentVillage.englishName}
+                secondaryClassName="text-sm sm:text-base font-normal text-slate-500 ml-2"
+              />
             </h1>
           </div>
         </div>
@@ -118,8 +123,6 @@ function ShopsContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredShops.map((shop) => {
-              const displayName = formatBilingual(shop.name, shop.nameEn, language);
-              const displayOwner = formatBilingual(shop.owner, shop.ownerEn, language);
               const displayAddress = language === "en" ? (shop.addressEn || shop.address) : shop.address;
 
               return (
@@ -135,11 +138,20 @@ function ShopsContent() {
                         </div>
                         <div>
                           <h3 className="text-lg font-bold text-slate-900 leading-tight">
-                            {displayName}
+                            <BilingualName
+                              mr={shop.name}
+                              en={shop.nameEn}
+                              secondaryClassName="text-xs sm:text-sm font-normal text-slate-500 ml-1.5"
+                            />
                           </h3>
                           <span className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
                             <span>{t.shopOwner}:</span>
-                            <strong className="text-slate-700">{displayOwner}</strong>
+                            <BilingualName
+                              mr={shop.owner}
+                              en={shop.ownerEn}
+                              className="font-bold text-slate-700"
+                              secondaryClassName="text-[11px] font-normal text-slate-400 ml-1"
+                            />
                           </span>
                         </div>
                       </div>

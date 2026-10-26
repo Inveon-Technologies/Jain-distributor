@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { formatBilingual } from "@/utils/transliterate";
+import { BilingualName } from "@/components/common/BilingualName";
 import { Salesperson } from "@/data/mockData";
 import { Users, Phone, Mail, CheckCircle2, XCircle, Plus, X, UserPlus, Check, Trash2 } from "lucide-react";
 
@@ -83,7 +84,11 @@ export default function AdminSalespersonsPage() {
                   </div>
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-                      {formatBilingual(sp.name, sp.nameEn, language)}
+                      <BilingualName
+                        mr={sp.name}
+                        en={sp.nameEn}
+                        secondaryClassName="text-xs sm:text-sm font-normal text-slate-500 ml-1.5"
+                      />
                     </h3>
                     <span className="text-xs text-slate-400 font-medium block mt-0.5">
                       {t.salesRole}
@@ -167,9 +172,14 @@ export default function AdminSalespersonsPage() {
                   return (
                     <span
                       key={vid}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-50 text-brand-primary font-bold text-[11px]"
+                      className="px-2.5 py-1 rounded-lg bg-emerald-50 text-brand-primary font-bold text-[11px] flex items-center gap-1"
                     >
-                      📍 {formatBilingual(v?.marathiName, v?.englishName, language)}
+                      <span>📍</span>
+                      <BilingualName
+                        mr={v?.marathiName}
+                        en={v?.englishName}
+                        secondaryClassName="text-[10px] font-normal text-slate-500 ml-1"
+                      />
                     </span>
                   );
                 })}
@@ -324,8 +334,13 @@ export default function AdminSalespersonsPage() {
                 <h3 className="text-base font-bold text-slate-900">
                   {t.deleteConfirmTitle}
                 </h3>
-                <span className="text-xs text-slate-400 font-medium block truncate max-w-[200px]">
-                  {formatBilingual(spToDelete.name, spToDelete.nameEn, language)}
+                <span className="text-xs text-slate-600 font-medium block truncate max-w-[200px]">
+                  <BilingualName
+                    mr={spToDelete.name}
+                    en={spToDelete.nameEn}
+                    className="font-bold text-slate-800"
+                    secondaryClassName="text-[11px] font-normal text-slate-400 ml-1"
+                  />
                 </span>
               </div>
             </div>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { formatBilingual } from "@/utils/transliterate";
+import { BilingualName } from "@/components/common/BilingualName";
 import {
   Search,
   MapPin,
@@ -121,18 +122,28 @@ export default function AdminOrdersPage() {
 
                     <td className="py-3.5 px-4">
                       <strong className="text-slate-900 block font-bold">
-                        {formatBilingual(shop?.name, shop?.nameEn, language)}
+                        <BilingualName
+                          mr={shop?.name}
+                          en={shop?.nameEn}
+                          secondaryClassName="text-xs font-normal text-slate-500 ml-1.5"
+                        />
                       </strong>
                       <span className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
                         <MapPin className="w-3 h-3 text-emerald-600" />
-                        <span>
-                          {formatBilingual(village?.marathiName, village?.englishName, language)}
-                        </span>
+                        <BilingualName
+                          mr={village?.marathiName}
+                          en={village?.englishName}
+                          secondaryClassName="text-[11px] font-normal text-slate-400 ml-1"
+                        />
                       </span>
                     </td>
 
                     <td className="py-3.5 px-4 font-semibold text-slate-800">
-                      {formatBilingual(sp?.name, sp?.nameEn, language)}
+                      <BilingualName
+                        mr={sp?.name}
+                        en={sp?.nameEn}
+                        secondaryClassName="text-xs font-normal text-slate-500 ml-1"
+                      />
                     </td>
 
                     <td className="py-3.5 px-4 max-w-xs">

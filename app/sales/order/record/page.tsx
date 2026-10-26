@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { formatBilingual } from "@/utils/transliterate";
+import { BilingualName } from "@/components/common/BilingualName";
 import {
   Mic,
   Store,
@@ -86,15 +87,22 @@ function RecordOrderContent() {
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-              {formatBilingual(currentShop.name, currentShop.nameEn, language)}
+              <BilingualName
+                mr={currentShop.name}
+                en={currentShop.nameEn}
+                secondaryClassName="text-xs sm:text-sm font-normal text-slate-500 ml-1.5"
+              />
             </h2>
             <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-0.5">
               <MapPin className="w-3.5 h-3.5 text-emerald-600" />
               <span>
                 {language === "mr" ? "गाव" : "Village"}:{" "}
-                <strong className="text-slate-700">
-                  {formatBilingual(currentVillage.marathiName, currentVillage.englishName, language)}
-                </strong>
+                <BilingualName
+                  mr={currentVillage.marathiName}
+                  en={currentVillage.englishName}
+                  className="font-bold text-slate-700"
+                  secondaryClassName="text-[11px] font-normal text-slate-400 ml-1"
+                />
               </span>
             </div>
           </div>

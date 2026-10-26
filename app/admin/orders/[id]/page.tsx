@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { formatBilingual } from "@/utils/transliterate";
+import { BilingualName } from "@/components/common/BilingualName";
 import {
   ArrowLeft,
   Store,
@@ -105,7 +106,11 @@ export default function OrderDetailsPage() {
                 {language === "mr" ? "दुकानाचे नाव" : "Shop Name"}
               </span>
               <strong className="text-slate-900 font-bold block mt-0.5">
-                {formatBilingual(shop?.name, shop?.nameEn, language)}
+                <BilingualName
+                  mr={shop?.name}
+                  en={shop?.nameEn}
+                  secondaryClassName="text-xs font-normal text-slate-500 ml-1.5"
+                />
               </strong>
             </div>
 
@@ -114,7 +119,11 @@ export default function OrderDetailsPage() {
                 {language === "mr" ? "गाव" : "Village"}
               </span>
               <span className="text-slate-800 font-bold block mt-0.5">
-                {formatBilingual(village?.marathiName, village?.englishName, language)}
+                <BilingualName
+                  mr={village?.marathiName}
+                  en={village?.englishName}
+                  secondaryClassName="text-xs font-normal text-slate-500 ml-1.5"
+                />
               </span>
             </div>
 
@@ -123,7 +132,12 @@ export default function OrderDetailsPage() {
                 {language === "mr" ? "मालक / संपर्क" : "Owner / Mobile"}
               </span>
               <span className="text-slate-800 font-semibold block mt-0.5">
-                {formatBilingual(shop?.owner, shop?.ownerEn, language)} • {shop?.mobile}
+                <BilingualName
+                  mr={shop?.owner}
+                  en={shop?.ownerEn}
+                  secondaryClassName="text-xs font-normal text-slate-500 ml-1"
+                />
+                {" "}• {shop?.mobile}
               </span>
             </div>
 
@@ -157,7 +171,11 @@ export default function OrderDetailsPage() {
                 {language === "mr" ? "नाव" : "Salesperson Name"}
               </span>
               <strong className="text-slate-900 font-bold block mt-0.5">
-                {formatBilingual(salesperson?.name, salesperson?.nameEn, language)}
+                <BilingualName
+                  mr={salesperson?.name}
+                  en={salesperson?.nameEn}
+                  secondaryClassName="text-xs font-normal text-slate-500 ml-1.5"
+                />
               </strong>
             </div>
 
@@ -204,18 +222,40 @@ export default function OrderDetailsPage() {
           </div>
 
           <div className="divide-y divide-slate-100 text-xs sm:text-sm">
-            {order?.items.map((it, idx) => (
-              <div key={idx} className="py-2.5 flex items-center justify-between">
-                <div>
-                  <span className="font-bold text-slate-900 block leading-tight">
-                    {it.name}
+            {order?.items.map((it, idx) => {
+              const nameMatch = it.name.match(/^(.*?)\s*\((.*?)\)$/);
+              const unitMatch = it.unit.match(/^(.*?)\s*\((.*?)\)$/);
+
+              return (
+                <div key={idx} className="py-2.5 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-900 block leading-tight">
+                      {nameMatch ? (
+                        <BilingualName
+                          mr={nameMatch[1]}
+                          en={nameMatch[2]}
+                          secondaryClassName="text-xs font-normal text-slate-500 ml-1.5"
+                        />
+                      ) : (
+                        it.name
+                      )}
+                    </span>
+                  </div>
+                  <span className="font-extrabold text-brand-primary px-2.5 py-1 rounded-lg bg-emerald-50">
+                    {it.quantity}{" "}
+                    {unitMatch ? (
+                      <BilingualName
+                        mr={unitMatch[1]}
+                        en={unitMatch[2]}
+                        secondaryClassName="text-[10px] font-normal text-slate-500 ml-1"
+                      />
+                    ) : (
+                      it.unit
+                    )}
                   </span>
                 </div>
-                <span className="font-extrabold text-brand-primary px-2.5 py-1 rounded-lg bg-emerald-50">
-                  {it.quantity} {it.unit}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

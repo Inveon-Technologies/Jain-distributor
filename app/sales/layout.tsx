@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { Logo } from "@/components/common/Logo";
 import { LanguageToggle } from "@/components/common/LanguageToggle";
+import { BilingualName } from "@/components/common/BilingualName";
 import { formatBilingual } from "@/utils/transliterate";
 import {
   Home,
@@ -63,7 +64,11 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
               </div>
               <div className="hidden sm:flex flex-col leading-tight max-w-[200px]">
                 <span className="text-xs font-bold text-slate-900 truncate" title={salespersonDisplayName}>
-                  {salespersonDisplayName}
+                  <BilingualName
+                    mr={currentUser?.name || "अमोल पाटील"}
+                    en={currentUser?.nameEn || "Amol Patil"}
+                    secondaryClassName="text-[11px] font-normal text-slate-500 ml-1"
+                  />
                 </span>
                 <span className="text-[10px] text-emerald-700 font-semibold">
                   {t.salesRole}

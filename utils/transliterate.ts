@@ -266,27 +266,42 @@ export function autoBilingualName(input: string): { mr: string; en: string } {
 }
 
 /**
- * Universal Bilingual Name Formatter:
+ * Extracts primary and secondary parts for bilingual display:
+ * - If current language is 'mr': primary is Marathi, secondary is English
+ * - If current language is 'en': primary is English, secondary is Marathi
+ */
+export function getBilingualParts(
+  marathi: string | undefined,
+  english: string | undefined,
+  currentLanguage: "mr" | "en"
+): { primary: string; secondary?: string } {
+  const mr = (marathi || "").trim();
+  const en = (english || "").trim();
+
+  if (!mr && !en) return { primary: "" };
+  if (!en) return { primary: mr };
+  if (!mr) return { primary: en };
+  if (mr.toLowerCase() === en.toLowerCase()) return { primary: mr };
+
+  if (currentLanguage === "mr") {
+    return { primary: mr, secondary: en };
+  } else {
+    return { primary: en, secondary: mr };
+  }
+}
+
+/**
+ * Universal Bilingual Name Formatter (plain text string):
  * - If current language is 'mr': Marathi (English) -> सांगोला (Sangola)
  * - If current language is 'en': English (Marathi) -> Sangola (सांगोला)
  * - If identical or missing one, falls back gracefully.
+ * Used for <option>, <title>, window alerts, and non-JSX contexts.
  */
 export function formatBilingual(
   marathi: string | undefined,
   english: string | undefined,
   currentLanguage: "mr" | "en"
 ): string {
-  const mr = (marathi || "").trim();
-  const en = (english || "").trim();
-
-  if (!mr && !en) return "";
-  if (!en) return mr;
-  if (!mr) return en;
-  if (mr.toLowerCase() === en.toLowerCase()) return mr;
-
-  if (currentLanguage === "mr") {
-    return `${mr} (${en})`;
-  } else {
-    return `${en} (${mr})`;
-  }
+  const { primary, secondary } = getBilingualParts(marathi, english, currentLanguage);
+  return secondary ? `${primary} (${secondary})` : primary;
 }

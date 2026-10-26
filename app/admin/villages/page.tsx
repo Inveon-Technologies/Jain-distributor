@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
+import { BilingualName } from "@/components/common/BilingualName";
 import { Village } from "@/data/mockData";
 import { MapPin, Plus, X, Check, Trash2 } from "lucide-react";
 
@@ -72,7 +73,11 @@ export default function AdminVillagesPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 leading-tight">
-                    {formatBilingual(v.marathiName, v.englishName, language)}
+                    <BilingualName
+                      mr={v.marathiName}
+                      en={v.englishName}
+                      secondaryClassName="text-xs sm:text-sm font-normal text-slate-500 ml-1.5"
+                    />
                   </h3>
                   <span className="text-xs text-slate-400 font-medium">
                     {language === "mr" ? `${v.taluka}, सोलापूर` : `${v.taluka}, Solapur`}
@@ -206,8 +211,13 @@ export default function AdminVillagesPage() {
                 <h3 className="text-base font-bold text-slate-900">
                   {t.deleteConfirmTitle}
                 </h3>
-                <span className="text-xs text-slate-400 font-medium block truncate max-w-[200px]">
-                  {formatBilingual(villageToDelete.marathiName, villageToDelete.englishName, language)}
+                <span className="text-xs text-slate-600 font-medium block truncate max-w-[200px]">
+                  <BilingualName
+                    mr={villageToDelete.marathiName}
+                    en={villageToDelete.englishName}
+                    className="font-bold text-slate-800"
+                    secondaryClassName="text-[11px] font-normal text-slate-400 ml-1"
+                  />
                 </span>
               </div>
             </div>

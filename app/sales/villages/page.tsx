@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { Village } from "@/data/mockData";
 import { formatBilingual } from "@/utils/transliterate";
+import { BilingualName } from "@/components/common/BilingualName";
 import { MapPin, Store, ArrowRight, CheckCircle2 } from "lucide-react";
 
 export default function VillagesSelectionPage() {
@@ -60,7 +61,11 @@ export default function VillagesSelectionPage() {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-slate-900 leading-tight">
-                        {formatBilingual(village.marathiName, village.englishName, language)}
+                        <BilingualName
+                          mr={village.marathiName}
+                          en={village.englishName}
+                          secondaryClassName="text-sm font-normal text-slate-400 ml-1.5"
+                        />
                       </h3>
                       <span className="text-xs font-semibold text-slate-400">
                         {language === "mr" ? `तालुका: ${village.taluka}` : `Taluka: ${village.taluka}`}

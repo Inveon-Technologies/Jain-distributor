@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { OrderItem } from "@/data/mockData";
 import { formatBilingual } from "@/utils/transliterate";
+import { BilingualName } from "@/components/common/BilingualName";
 import {
   CheckCircle2,
   Edit2,
@@ -93,15 +94,22 @@ function OrderReviewContent() {
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-              {formatBilingual(currentShop.name, currentShop.nameEn, language)}
+              <BilingualName
+                mr={currentShop.name}
+                en={currentShop.nameEn}
+                secondaryClassName="text-xs sm:text-sm font-normal text-slate-500 ml-1.5"
+              />
             </h2>
             <div className="flex items-center gap-1 text-xs text-slate-500 font-medium mt-0.5">
               <MapPin className="w-3.5 h-3.5 text-emerald-600" />
               <span>
                 {language === "mr" ? "गाव" : "Village"}:{" "}
-                <strong className="text-slate-700">
-                  {formatBilingual(currentVillage.marathiName, currentVillage.englishName, language)}
-                </strong>
+                <BilingualName
+                  mr={currentVillage.marathiName}
+                  en={currentVillage.englishName}
+                  className="font-bold text-slate-700"
+                  secondaryClassName="text-[11px] font-normal text-slate-400 ml-1"
+                />
               </span>
             </div>
           </div>
@@ -185,16 +193,36 @@ function OrderReviewContent() {
         </div>
 
         <div className="divide-y divide-slate-100">
-          {items.map((item, idx) => (
-            <div key={idx} className="py-3 flex items-center justify-between gap-3">
-              <div className="flex-1">
-                <span className="text-sm sm:text-base font-bold text-slate-900 block leading-tight">
-                  {item.name}
-                </span>
-                <span className="text-xs text-slate-400 font-medium">
-                  {item.unit}
-                </span>
-              </div>
+          {items.map((item, idx) => {
+            const nameMatch = item.name.match(/^(.*?)\s*\((.*?)\)$/);
+            const unitMatch = item.unit.match(/^(.*?)\s*\((.*?)\)$/);
+
+            return (
+              <div key={idx} className="py-3 flex items-center justify-between gap-3">
+                <div className="flex-1">
+                  <span className="text-sm sm:text-base font-bold text-slate-900 block leading-tight">
+                    {nameMatch ? (
+                      <BilingualName
+                        mr={nameMatch[1]}
+                        en={nameMatch[2]}
+                        secondaryClassName="text-xs font-normal text-slate-500 ml-1.5"
+                      />
+                    ) : (
+                      item.name
+                    )}
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium block mt-0.5">
+                    {unitMatch ? (
+                      <BilingualName
+                        mr={unitMatch[1]}
+                        en={unitMatch[2]}
+                        secondaryClassName="text-[11px] font-normal text-slate-400 ml-1"
+                      />
+                    ) : (
+                      item.unit
+                    )}
+                  </span>
+                </div>
 
               {/* Quantity Counter */}
               <div className="flex items-center gap-2">
@@ -227,8 +255,9 @@ function OrderReviewContent() {
                 </button>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
+      </div>
       </section>
 
       {/* Action Buttons */}

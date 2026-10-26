@@ -4,7 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
-import { formatBilingual } from "@/utils/transliterate";
+import { BilingualName } from "@/components/common/BilingualName";
 import { MapPin, Store, Mic, ArrowRight, TrendingUp } from "lucide-react";
 
 export default function SalesHomePage() {
@@ -21,12 +21,6 @@ export default function SalesHomePage() {
     return t.greetingNight;
   };
 
-  const salespersonName = formatBilingual(
-    currentUser?.name || "अमोल पाटील",
-    currentUser?.nameEn || "Amol Patil",
-    language
-  );
-
   // Count orders taken today by current user
   const todayOrdersCount = orders.filter((o) => o.salespersonId === currentUser?.id).length;
 
@@ -35,8 +29,14 @@ export default function SalesHomePage() {
       {/* Greeting Banner */}
       <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight flex items-center gap-2">
-            <span>{getGreeting()}, {salespersonName}!</span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight flex flex-wrap items-center gap-2">
+            <span>{getGreeting()},</span>
+            <BilingualName
+              mr={currentUser?.name || "अमोल पाटील"}
+              en={currentUser?.nameEn || "Amol Patil"}
+              secondaryClassName="text-base sm:text-lg font-normal text-slate-500 ml-1.5"
+            />
+            <span>!</span>
             <span className="text-2xl animate-bounce">👋</span>
           </h1>
           <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { formatBilingual } from "@/utils/transliterate";
+import { BilingualName } from "@/components/common/BilingualName";
 import { Shop } from "@/data/mockData";
 import { Store, MapPin, Phone, Search, Trash2 } from "lucide-react";
 
@@ -94,10 +95,20 @@ export default function AdminShopsPage() {
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-slate-900 leading-tight">
-                        {formatBilingual(s.name, s.nameEn, language)}
+                        <BilingualName
+                          mr={s.name}
+                          en={s.nameEn}
+                          secondaryClassName="text-xs font-normal text-slate-500 ml-1.5"
+                        />
                       </h3>
-                      <span className="text-xs text-slate-500 font-medium">
-                        {t.shopOwner}: {formatBilingual(s.owner, s.ownerEn, language)}
+                      <span className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+                        <span>{t.shopOwner}:</span>
+                        <BilingualName
+                          mr={s.owner}
+                          en={s.ownerEn}
+                          className="font-semibold text-slate-700"
+                          secondaryClassName="text-[11px] font-normal text-slate-400 ml-1"
+                        />
                       </span>
                     </div>
                   </div>
@@ -116,7 +127,13 @@ export default function AdminShopsPage() {
                   <p className="flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     <span>
-                      <strong>{formatBilingual(v?.marathiName, v?.englishName, language)}</strong> • {language === "en" ? (s.addressEn || s.address) : s.address}
+                      <BilingualName
+                        mr={v?.marathiName}
+                        en={v?.englishName}
+                        className="font-bold text-slate-800"
+                        secondaryClassName="text-[11px] font-normal text-slate-400 ml-1"
+                      />
+                      {" "}• {language === "en" ? (s.addressEn || s.address) : s.address}
                     </span>
                   </p>
                   <p className="flex items-center gap-1.5">
@@ -142,8 +159,13 @@ export default function AdminShopsPage() {
                 <h3 className="text-base font-bold text-slate-900">
                   {t.deleteConfirmTitle}
                 </h3>
-                <span className="text-xs text-slate-400 font-medium block truncate max-w-[200px]">
-                  {formatBilingual(shopToDelete.name, shopToDelete.nameEn, language)}
+                <span className="text-xs text-slate-600 font-medium block truncate max-w-[200px]">
+                  <BilingualName
+                    mr={shopToDelete.name}
+                    en={shopToDelete.nameEn}
+                    className="font-bold text-slate-800"
+                    secondaryClassName="text-[11px] font-normal text-slate-400 ml-1"
+                  />
                 </span>
               </div>
             </div>
