@@ -1,0 +1,54 @@
+# Production stack on a single Linux server (VPS) using the images published by CI to GHCR.
+# The deploy job copies this file to $DEPLOY_PATH on the server next to a .env file and runs:
+#   docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d
+# Put a TLS reverse proxy (Caddy / Nginx / Traefik) in front of ports 3000 and 4000.
+name: jain-distributor
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jain_distributor}
+      POSTGRES_USER: ${POSTGRES_USER:-jain}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: ${API_IMAGE:?Set API_IMAGE}
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgres://${POSTGRES_USER:-jain}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-jain_distributor}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}
+      STT_PROVIDER: ${STT_PROVIDER:-google}
+      STT_LANGUAGE: ${STT_LANGUAGE:-mr-IN}
+      GOOGLE_SPEECH_API_KEY: ${GOOGLE_SPEECH_API_KEY:-}
+    ports:
+      - "127.0.0.1:4000:4000"
+
+  web:
+    image: ${WEB_IMAGE:?Set WEB_IMAGE}
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  pgdata:

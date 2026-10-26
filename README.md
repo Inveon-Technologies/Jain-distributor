@@ -44,20 +44,24 @@ On the root login page (`http://localhost:3000`), enter credentials, sign in wit
 
 ---
 
-## 🐙 Push to GitHub Repository
+## 🧩 Backend API, Docker & CI/CD
 
-To push the project to your Inveon Technologies GitHub repository:
+The backend lives in [`backend/`](backend/README.md): Node.js 22 + Express 5 + TypeScript + PostgreSQL 16, with Marathi (`mr-IN`) speech-to-text for voice orders. See [`backend/README.md`](backend/README.md) for the full API reference.
+
+### Run everything with Docker
 
 ```bash
-cd C:\Users\Ankita\.gemini\antigravity\scratch\jain-distributor-web
-
-# Add the remote repository URL
-git remote add origin https://github.com/Inveon-Technologies/jain-distributor-web.git
-
-# Push to the main branch
-git branch -M main
-git push -u origin main
+cp .env.example .env                 # set JWT_SECRET, ADMIN_PASSWORD, POSTGRES_PASSWORD
+docker compose up -d --build         # PostgreSQL + API (http://localhost:4000) + web (http://localhost:3000)
+docker compose exec api node dist/db/seed.js   # optional demo data
 ```
+
+### CI/CD
+
+* **CI** (`.github/workflows/ci.yml`) runs on every PR and on `main`: web lint/typecheck/build, API lint/typecheck/tests (against PostgreSQL)/build, and Docker image builds. Images are pushed to GHCR from `main`.
+* **Release** (`.github/workflows/release.yml`) runs on `v*.*.*` tags: versioned images on GHCR, a GitHub Release built from [`CHANGELOG.md`](CHANGELOG.md), and an optional SSH deploy using [`deploy/docker-compose.prod.yml`](deploy/docker-compose.prod.yml).
+
+Release notes: [`RELEASE_NOTES.md`](RELEASE_NOTES.md).
 
 ---
 
@@ -97,6 +101,7 @@ The application features a global language toggle (`[ मराठी | English 
 
 ## 🛠️ Tech Stack & Architecture
 * **Framework:** Next.js 14 (App Router)
+* **Backend:** Express 5 + PostgreSQL 16 (`backend/`)
 * **Language:** TypeScript
 * **Styling:** Tailwind CSS (Custom brand tokens: `#084826`, Emerald, Amber)
 * **Icons:** Lucide React
@@ -105,7 +110,7 @@ The application features a global language toggle (`[ मराठी | English 
 
 ---
 
-## 🐳 Handoff for Inveon Technologies DevOps & Backend Team
-1. The entire front-end UI is modular and ready for Docker containerization (`Dockerfile`).
-2. Authentication on `app/page.tsx` is encapsulated and ready to connect to `POST /api/auth/login`.
-3. The Speech-to-Text handler on `app/sales/order/record/page.tsx` is prepared to interface with `POST /api/v1/voice/transcribe` (`@google-cloud/speech` with language code `mr-IN`).
+## 🐳 Integration Status
+1. The backend API, Docker images and CI/CD are in place (see above).
+2. The UI still reads from the in-memory demo data in `context/AppContext.tsx`; the next step is to call the API (`NEXT_PUBLIC_API_URL`) from there, starting with `POST /api/v1/auth/login`.
+3. The Speech-to-Text handler on `app/sales/order/record/page.tsx` should upload the recording to `POST /api/v1/voice/transcribe` (Google Cloud Speech-to-Text, language code `mr-IN`).
