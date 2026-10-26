@@ -54,6 +54,15 @@ export const translations = {
     visits: "भेटी",
     todayOrders: "आजच्या ऑर्डर्स",
     timestamp: "वेळ",
+    delete: "हटवा",
+    deleteShop: "दुकान हटवा",
+    deleteVillage: "गाव हटवा",
+    deleteSalesperson: "सेल्समन हटवा",
+    deleteConfirmTitle: "हटवण्याची खात्री करा",
+    deleteShopConfirmMsg: "तुम्हाला हे दुकान खरोखर हटवायचे आहे का? ही क्रिया पूर्ववत केली जाऊ शकत नाही.",
+    deleteVillageConfirmMsg: "तुम्हाला हे गाव खरोखर हटवायचे आहे का? या गावाशी संबंधित दुकानांवर याचा परिणाम होईल.",
+    deleteSalespersonConfirmMsg: "तुम्हाला या सेल्समनचे खाते खरोखर हटवायचे आहे का?",
+    deleteConfirmBtn: "होय, हटवा",
 
     // Salesperson Portal Home
     salesWelcome: "नमस्कार",
@@ -243,6 +252,15 @@ export const translations = {
     visits: "Visits",
     todayOrders: "Today's Orders",
     timestamp: "Timestamp",
+    delete: "Delete",
+    deleteShop: "Delete Shop",
+    deleteVillage: "Delete Village",
+    deleteSalesperson: "Delete Salesperson",
+    deleteConfirmTitle: "Confirm Deletion",
+    deleteShopConfirmMsg: "Are you sure you want to delete this shop? This action cannot be undone.",
+    deleteVillageConfirmMsg: "Are you sure you want to delete this village? Linked shops may be affected.",
+    deleteSalespersonConfirmMsg: "Are you sure you want to remove this salesperson?",
+    deleteConfirmBtn: "Yes, Delete",
 
     // Salesperson Portal Home
     salesWelcome: "Welcome",

@@ -4,13 +4,15 @@ import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { formatBilingual } from "@/utils/transliterate";
-import { Users, Phone, Mail, CheckCircle2, XCircle, Plus, X, UserPlus, Check } from "lucide-react";
+import { Salesperson } from "@/data/mockData";
+import { Users, Phone, Mail, CheckCircle2, XCircle, Plus, X, UserPlus, Check, Trash2 } from "lucide-react";
 
 export default function AdminSalespersonsPage() {
-  const { language, salespersons, villages, addSalesperson } = useApp();
+  const { language, salespersons, villages, addSalesperson, deleteSalesperson } = useApp();
   const t = translations[language];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [spToDelete, setSpToDelete] = useState<Salesperson | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
@@ -89,25 +91,36 @@ export default function AdminSalespersonsPage() {
                   </div>
                 </div>
 
-                <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                    sp.status === "ACTIVE"
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                      : "bg-slate-100 text-slate-500"
-                  }`}
-                >
-                  {sp.status === "ACTIVE" ? (
-                    <>
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      <span>{t.active}</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="w-3 h-3 text-slate-400" />
-                      <span>{t.inactive}</span>
-                    </>
-                  )}
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                      sp.status === "ACTIVE"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {sp.status === "ACTIVE" ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span>{t.active}</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-3 h-3 text-slate-400" />
+                        <span>{t.inactive}</span>
+                      </>
+                    )}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setSpToDelete(sp)}
+                    title={t.deleteSalesperson}
+                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Contact info */}
@@ -296,6 +309,48 @@ export default function AdminSalespersonsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {spToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {t.deleteConfirmTitle}
+                </h3>
+                <span className="text-xs text-slate-400 font-medium block truncate max-w-[200px]">
+                  {formatBilingual(spToDelete.name, spToDelete.nameEn, language)}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {t.deleteSalespersonConfirmMsg}
+            </p>
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setSpToDelete(null)}
+                className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 cursor-pointer"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteSalesperson(spToDelete.id);
+                  setSpToDelete(null);
+                }}
+                className="flex-1 py-2 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+              >
+                {t.deleteConfirmBtn}
+              </button>
+            </div>
           </div>
         </div>
       )}

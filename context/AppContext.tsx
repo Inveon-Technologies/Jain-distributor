@@ -43,7 +43,9 @@ interface AppContextType {
   selectedShop: Shop | null;
   setSelectedShop: (s: Shop | null) => void;
   addShop: (newShop: Omit<Shop, "id">) => Shop;
+  deleteShop: (shopId: string) => void;
   addVillage: (newVillage: { marathiName: string; englishName: string; taluka: string; district: string }) => Village;
+  deleteVillage: (villageId: string) => void;
   addSalesperson: (data: {
     name: string;
     nameEn?: string;
@@ -52,6 +54,7 @@ interface AppContextType {
     assignedVillages?: string[];
     status?: "ACTIVE" | "INACTIVE";
   }) => Salesperson;
+  deleteSalesperson: (salespersonId: string) => void;
   createOrder: (orderData: {
     shopId: string;
     villageId: string;
@@ -195,6 +198,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return created;
   };
 
+  const deleteShop = (shopId: string) => {
+    const targetShop = shops.find((s) => s.id === shopId);
+    setShops((prev) => prev.filter((s) => s.id !== shopId));
+    if (targetShop) {
+      setVillages((prev) =>
+        prev.map((v) =>
+          v.id === targetShop.villageId
+            ? { ...v, shopsCount: Math.max(0, v.shopsCount - 1) }
+            : v
+        )
+      );
+    }
+  };
+
   const addVillage = (villageData: { marathiName: string; englishName: string; taluka: string; district: string }) => {
     const id = `v-${villages.length + 1}`;
     const created: Village = {
@@ -206,6 +223,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setVillages((prev) => [...prev, created]);
     return created;
+  };
+
+  const deleteVillage = (villageId: string) => {
+    setVillages((prev) => prev.filter((v) => v.id !== villageId));
+    setShops((prev) => prev.filter((s) => s.villageId !== villageId));
+  };
+
+  const deleteSalesperson = (salespersonId: string) => {
+    setSalespersons((prev) => prev.filter((sp) => sp.id !== salespersonId));
   };
 
   const createOrder = ({
@@ -278,8 +304,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         selectedShop,
         setSelectedShop,
         addShop,
+        deleteShop,
         addVillage,
+        deleteVillage,
         addSalesperson,
+        deleteSalesperson,
         createOrder,
       }}
     >
