@@ -5,7 +5,6 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
-import { MarathiSuggestInput } from "@/components/common/MarathiSuggestInput";
 import { Salesperson } from "@/data/mockData";
 import { Users, Phone, Mail, CheckCircle2, Plus, X, UserPlus, Check, Trash2, Eye, EyeOff, Clock } from "lucide-react";
 
@@ -16,7 +15,6 @@ export default function AdminSalespersonsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [spToDelete, setSpToDelete] = useState<Salesperson | null>(null);
   const [name, setName] = useState("");
-  const [namePair, setNamePair] = useState<{ mr: string; en: string }>({ mr: "", en: "" });
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("123456");
@@ -28,12 +26,11 @@ export default function AdminSalespersonsPage() {
     e.preventDefault();
     if (!name.trim() || !email.trim()) return;
 
-    const finalMr = namePair.mr || autoBilingualName(name).mr;
-    const finalEn = namePair.en || autoBilingualName(name).en;
+    const pair = autoBilingualName(name);
 
     addSalesperson({
-      name: finalMr,
-      nameEn: finalEn,
+      name: pair.mr,
+      nameEn: pair.en,
       email: email.trim(),
       mobile: mobile.trim() || "+91 98000 00000",
       password: password.trim() || "123456",
@@ -42,7 +39,6 @@ export default function AdminSalespersonsPage() {
     });
 
     setName("");
-    setNamePair({ mr: "", en: "" });
     setEmail("");
     setMobile("");
     setPassword("123456");
@@ -209,7 +205,7 @@ export default function AdminSalespersonsPage() {
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100"
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -220,12 +216,13 @@ export default function AdminSalespersonsPage() {
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
                   {t.salespersonNameLabel} *
                 </label>
-                <MarathiSuggestInput
+                <input
+                  type="text"
                   required
                   value={name}
-                  onChange={setName}
-                  onBilingualChange={setNamePair}
-                  placeholder={language === "mr" ? "सेल्समनचे नाव (उदा. Varsha Patil किंवा वर्षा पाटील)" : "Enter name (e.g. Varsha Patil, Kedar)"}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={language === "mr" ? "उदा. वर्षा पाटील / Varsha Patil / Kedar" : "e.g. Varsha Patil, Kedar"}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
                 />
               </div>
 
@@ -331,7 +328,7 @@ export default function AdminSalespersonsPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50"
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 cursor-pointer"
                 >
                   {t.cancel}
                 </button>

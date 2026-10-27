@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
-import { MarathiSuggestInput } from "@/components/common/MarathiSuggestInput";
 import { ArrowLeft, Check, Store } from "lucide-react";
 
 function AddNewShopContent() {
@@ -17,35 +16,27 @@ function AddNewShopContent() {
   const defaultVillageId = searchParams.get("village") || selectedVillage?.id || villages[0].id;
 
   const [name, setName] = useState("");
-  const [namePair, setNamePair] = useState<{ mr: string; en: string }>({ mr: "", en: "" });
   const [owner, setOwner] = useState("");
-  const [ownerPair, setOwnerPair] = useState<{ mr: string; en: string }>({ mr: "", en: "" });
   const [mobile, setMobile] = useState("");
   const [address, setAddress] = useState("");
-  const [addressPair, setAddressPair] = useState<{ mr: string; en: string }>({ mr: "", en: "" });
   const [villageId, setVillageId] = useState(defaultVillageId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const finalNameMr = namePair.mr || autoBilingualName(name).mr;
-    const finalNameEn = namePair.en || autoBilingualName(name).en;
-
-    const finalOwnerMr = ownerPair.mr || autoBilingualName(owner).mr || (language === "mr" ? "दुकानदार" : "Shopkeeper");
-    const finalOwnerEn = ownerPair.en || autoBilingualName(owner).en || "Shopkeeper";
-
-    const finalAddressMr = addressPair.mr || autoBilingualName(address).mr || (language === "mr" ? "मुख्य रस्ता" : "Main Road");
-    const finalAddressEn = addressPair.en || autoBilingualName(address).en || "Main Road";
+    const namePair = autoBilingualName(name);
+    const ownerPair = autoBilingualName(owner || (language === "mr" ? "दुकानदार" : "Shopkeeper"));
+    const addressPair = autoBilingualName(address || (language === "mr" ? "मुख्य रस्ता" : "Main Road"));
 
     addShop({
-      name: finalNameMr,
-      nameEn: finalNameEn,
-      owner: finalOwnerMr,
-      ownerEn: finalOwnerEn,
+      name: namePair.mr,
+      nameEn: namePair.en,
+      owner: ownerPair.mr,
+      ownerEn: ownerPair.en,
       mobile: mobile.trim() || "+91 98000 00000",
-      address: finalAddressMr,
-      addressEn: finalAddressEn,
+      address: addressPair.mr,
+      addressEn: addressPair.en,
       villageId,
       outstandingBalance: 0,
     });
@@ -60,7 +51,7 @@ function AddNewShopContent() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="p-2.5 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition shadow-xs"
+          className="p-2.5 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition shadow-xs cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -100,12 +91,13 @@ function AddNewShopContent() {
           <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
             {t.shopNameLabel} *
           </label>
-          <MarathiSuggestInput
+          <input
+            type="text"
             required
             value={name}
-            onChange={setName}
-            onBilingualChange={setNamePair}
-            placeholder={language === "mr" ? "दुकानाचे नाव (उदा. Shri Mahalaxmi Kirana)" : "Enter shop name (e.g. Shri Mahalaxmi Kirana)"}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={language === "mr" ? "उदा. श्री महालक्ष्मी किराणा / Shri Mahalaxmi Kirana" : "e.g. Shri Mahalaxmi Kirana"}
+            className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
           />
         </div>
 
@@ -114,11 +106,12 @@ function AddNewShopContent() {
           <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
             {t.ownerNameLabel}
           </label>
-          <MarathiSuggestInput
+          <input
+            type="text"
             value={owner}
-            onChange={setOwner}
-            onBilingualChange={setOwnerPair}
-            placeholder={language === "mr" ? "मालकाचे नाव (उदा. Ramesh Patil किंवा Varsha Patil)" : "Enter owner name (e.g. Ramesh Patil / Varsha Patil)"}
+            onChange={(e) => setOwner(e.target.value)}
+            placeholder={language === "mr" ? "उदा. वर्षा पाटील / Varsha Patil / Kedar" : "e.g. Ramesh Patil / Varsha Patil"}
+            className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
           />
         </div>
 
@@ -132,7 +125,7 @@ function AddNewShopContent() {
             value={mobile}
             onChange={(e) => setMobile(e.target.value)}
             placeholder={t.mobilePlaceholder}
-            className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
+            className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
           />
         </div>
 
@@ -141,11 +134,12 @@ function AddNewShopContent() {
           <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
             {t.addressLabel}
           </label>
-          <MarathiSuggestInput
+          <textarea
+            rows={2}
             value={address}
-            onChange={setAddress}
-            onBilingualChange={setAddressPair}
-            placeholder={language === "mr" ? "पत्ता (उदा. Near Bus Stand, Main Road)" : "Enter address (e.g. Near Bus Stand, Main Road)"}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder={language === "mr" ? "उदा. बस स्टँड जवळ, मुख्य रस्ता" : "e.g. Near Bus Stand, Main Road"}
+            className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
           />
         </div>
 

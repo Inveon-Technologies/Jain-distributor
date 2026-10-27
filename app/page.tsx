@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
-import { MarathiSuggestInput } from "@/components/common/MarathiSuggestInput";
 import { Logo } from "@/components/common/Logo";
 import { LanguageToggle } from "@/components/common/LanguageToggle";
 import {
@@ -42,7 +41,6 @@ export default function LoginPage() {
   // Sign up modal for new salespersons
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newNamePair, setNewNamePair] = useState<{ mr: string; en: string }>({ mr: "", en: "" });
   const [newEmail, setNewEmail] = useState("");
   const [newMobile, setNewMobile] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -91,13 +89,13 @@ export default function LoginPage() {
 
   const handleSalespersonSignUp = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalMr = newNamePair.mr || autoBilingualName(newName).mr;
-    const finalEn = newNamePair.en || autoBilingualName(newName).en;
-    if (!finalMr || !newEmail.trim()) return;
+    if (!newName.trim() || !newEmail.trim()) return;
+
+    const pair = autoBilingualName(newName);
 
     registerSalesperson({
-      name: finalMr,
-      nameEn: finalEn,
+      name: pair.mr,
+      nameEn: pair.en,
       email: newEmail.trim(),
       mobile: newMobile.trim(),
       password: newPassword.trim() || "123456",
@@ -106,7 +104,6 @@ export default function LoginPage() {
     setIsSignUpOpen(false);
     setRegistrationSuccessMsg(t.registrationSuccessPending);
     setNewName("");
-    setNewNamePair({ mr: "", en: "" });
     setNewEmail("");
     setNewMobile("");
     setNewPassword("");
@@ -400,14 +397,17 @@ export default function LoginPage() {
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
                   {t.fullNameLabel} *
                 </label>
-                <MarathiSuggestInput
-                  required
-                  value={newName}
-                  onChange={setNewName}
-                  onBilingualChange={setNewNamePair}
-                  icon={<User className="w-4 h-4" />}
-                  placeholder={language === "mr" ? "पूर्ण नाव (उदा. Nilesh Shinde किंवा निलेश शिंदे)" : "Full name (e.g. Nilesh Shinde)"}
-                />
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    required
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder={language === "mr" ? "उदा. वर्षा पाटील / Varsha Patil" : "e.g. Varsha Patil"}
+                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                  />
+                </div>
               </div>
 
 

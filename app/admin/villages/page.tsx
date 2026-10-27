@@ -5,7 +5,6 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { autoBilingualName } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
-import { MarathiSuggestInput } from "@/components/common/MarathiSuggestInput";
 import { Village } from "@/data/mockData";
 import { MapPin, Plus, X, Check, Trash2 } from "lucide-react";
 
@@ -16,30 +15,24 @@ export default function AdminVillagesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [villageToDelete, setVillageToDelete] = useState<Village | null>(null);
   const [villageName, setVillageName] = useState("");
-  const [villageNamePair, setVillageNamePair] = useState<{ mr: string; en: string }>({ mr: "", en: "" });
   const [taluka, setTaluka] = useState("");
-  const [talukaPair, setTalukaPair] = useState<{ mr: string; en: string }>({ mr: "", en: "" });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!villageName.trim()) return;
 
-    const vMr = villageNamePair.mr || autoBilingualName(villageName).mr;
-    const vEn = villageNamePair.en || autoBilingualName(villageName).en;
-    const tMr = talukaPair.mr || autoBilingualName(taluka).mr || "पंढरपूर";
-    const tEn = talukaPair.en || autoBilingualName(taluka).en || "Pandharpur";
+    const vPair = autoBilingualName(villageName);
+    const talukaPair = autoBilingualName(taluka || (language === "mr" ? "पंढरपूर" : "Pandharpur"));
 
     addVillage({
-      marathiName: vMr,
-      englishName: vEn,
-      taluka: language === "mr" ? tMr : tEn,
+      marathiName: vPair.mr,
+      englishName: vPair.en,
+      taluka: language === "mr" ? talukaPair.mr : talukaPair.en,
       district: language === "mr" ? "सोलापूर" : "Solapur",
     });
 
     setVillageName("");
-    setVillageNamePair({ mr: "", en: "" });
     setTaluka("");
-    setTalukaPair({ mr: "", en: "" });
     setIsModalOpen(false);
   };
 
@@ -152,7 +145,7 @@ export default function AdminVillagesPage() {
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100"
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -163,12 +156,13 @@ export default function AdminVillagesPage() {
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
                   {t.villageNameLabel} *
                 </label>
-                <MarathiSuggestInput
+                <input
+                  type="text"
                   required
                   value={villageName}
-                  onChange={setVillageName}
-                  onBilingualChange={setVillageNamePair}
-                  placeholder={language === "mr" ? "गावाचे नाव टाइप करा (उदा. Kolhapur किंवा कोल्हापूर)" : "Type village name (e.g. Kolhapur, Hatkanangale)"}
+                  onChange={(e) => setVillageName(e.target.value)}
+                  placeholder={language === "mr" ? "उदा. कोल्हापूर / Kolhapur" : "e.g. Kolhapur, Hatkanangale"}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
                 />
               </div>
 
@@ -176,11 +170,12 @@ export default function AdminVillagesPage() {
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
                   {t.talukaLabel}
                 </label>
-                <MarathiSuggestInput
+                <input
+                  type="text"
                   value={taluka}
-                  onChange={setTaluka}
-                  onBilingualChange={setTalukaPair}
-                  placeholder={language === "mr" ? "तालुका टाइप करा (उदा. Pandharpur)" : "Type taluka name (e.g. Pandharpur)"}
+                  onChange={(e) => setTaluka(e.target.value)}
+                  placeholder={language === "mr" ? "उदा. पंढरपूर / Pandharpur" : "e.g. Pandharpur"}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
                 />
               </div>
 
@@ -188,7 +183,7 @@ export default function AdminVillagesPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50"
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 cursor-pointer"
                 >
                   {t.cancel}
                 </button>
