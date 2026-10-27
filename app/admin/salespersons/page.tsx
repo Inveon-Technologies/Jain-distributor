@@ -119,15 +119,16 @@ export default function AdminSalespersonsPage() {
         {salespersons.map((sp) => (
           <div
             key={sp.id}
-            className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs hover:border-emerald-300 transition space-y-4 flex flex-col justify-between"
+            className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs hover:border-emerald-300 transition space-y-4 flex flex-col justify-between overflow-hidden"
           >
             <div>
+              {/* Card Header: Avatar, Name & Action Buttons */}
               <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-brand-primary flex items-center justify-center font-bold text-lg">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-brand-primary flex items-center justify-center font-bold text-lg shrink-0">
                     <Users className="w-6 h-6" />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
                       <BilingualName
                         mr={sp.name}
@@ -141,31 +142,8 @@ export default function AdminSalespersonsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => toggleSalespersonStatus(sp.id)}
-                    title={sp.status === "ACTIVE" ? t.clickToDeactivate : t.clickToActivate}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition shadow-xs hover:scale-105 active:scale-95 cursor-pointer ${
-                      sp.status === "ACTIVE"
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100"
-                        : "bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100"
-                    }`}
-                  >
-                    {sp.status === "ACTIVE" ? (
-                      <>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{t.active}</span>
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                      </>
-                    ) : (
-                      <>
-                        <Clock className="w-3.5 h-3.5 text-amber-600" />
-                        <span>{language === "mr" ? "मंजुरी प्रलंबित" : "Pending Approval"}</span>
-                      </>
-                    )}
-                  </button>
-
+                {/* Edit & Delete Action Buttons: Fixed at top right inside card */}
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
                     onClick={() => openEditModal(sp)}
@@ -184,6 +162,36 @@ export default function AdminSalespersonsPage() {
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
+              </div>
+
+              {/* Status Toggle Row: Dedicated full-width bar so status changes never push buttons */}
+              <div className="mt-3.5 flex items-center justify-between bg-slate-50/80 px-3 py-1.5 rounded-2xl border border-slate-100">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  {t.status}:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleSalespersonStatus(sp.id)}
+                  title={sp.status === "ACTIVE" ? t.clickToDeactivate : t.clickToActivate}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition shadow-2xs hover:scale-105 active:scale-95 cursor-pointer ${
+                    sp.status === "ACTIVE"
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100"
+                      : "bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100"
+                  }`}
+                >
+                  {sp.status === "ACTIVE" ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{t.active}</span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="w-3.5 h-3.5 text-amber-600" />
+                      <span>{language === "mr" ? "मंजुरी प्रलंबित" : "Pending Approval"}</span>
+                    </>
+                  )}
+                </button>
               </div>
 
               {/* Contact info */}
