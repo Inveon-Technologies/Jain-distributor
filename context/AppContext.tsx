@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
-import { autoBilingualName } from "@/utils/transliterate";
+import { autoBilingualName, isDevanagari } from "@/utils/transliterate";
 import {
   INITIAL_SALESPERSONS,
   INITIAL_VILLAGES,
@@ -32,7 +32,7 @@ interface AppContextType {
   toggleLanguage: () => void;
   currentUser: CurrentUser | null;
   login: (email: string, pass: string) => { success: boolean; role?: UserRole; error?: string };
-  registerSalesperson: (data: { name: string; email: string; mobile: string; password?: string }) => { success: boolean; pendingApproval?: boolean };
+  registerSalesperson: (data: { name: string; nameEn?: string; email: string; mobile: string; password?: string }) => { success: boolean; pendingApproval?: boolean };
   logout: () => void;
   villages: Village[];
   shops: Shop[];
@@ -150,21 +150,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const registerSalesperson = ({
     name,
+    nameEn,
     email,
     mobile,
     password = "123456",
   }: {
     name: string;
+    nameEn?: string;
     email: string;
     mobile: string;
     password?: string;
   }) => {
     const id = `sp-${salespersons.length + 1}`;
     const bilingual = autoBilingualName(name);
+    const finalMr = isDevanagari(name) ? name.trim() : (bilingual.mr || name.trim());
+    const finalEn = nameEn?.trim() || (isDevanagari(name) ? (bilingual.en || name.trim()) : name.trim());
     const newSp: Salesperson = {
       id,
-      name: bilingual.mr || name,
-      nameEn: bilingual.en || name,
+      name: finalMr,
+      nameEn: finalEn,
       email: email.trim().toLowerCase(),
       password,
       mobile: mobile || "+91 98000 00000",
@@ -197,8 +201,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }) => {
     const id = `sp-${salespersons.length + 1}`;
     const bilingual = autoBilingualName(name);
-    const finalMr = bilingual.mr || name;
-    const finalEn = nameEn || bilingual.en || name;
+    const finalMr = isDevanagari(name) ? name.trim() : (bilingual.mr || name.trim());
+    const finalEn = nameEn?.trim() || (isDevanagari(name) ? (bilingual.en || name.trim()) : name.trim());
 
     const created: Salesperson = {
       id,

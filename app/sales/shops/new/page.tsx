@@ -15,29 +15,77 @@ function AddNewShopContent() {
 
   const defaultVillageId = searchParams.get("village") || selectedVillage?.id || villages[0].id;
 
-  const [name, setName] = useState("");
-  const [owner, setOwner] = useState("");
+  const [nameEn, setNameEn] = useState("");
+  const [nameMr, setNameMr] = useState("");
+  const [ownerEn, setOwnerEn] = useState("");
+  const [ownerMr, setOwnerMr] = useState("");
   const [mobile, setMobile] = useState("");
-  const [address, setAddress] = useState("");
+  const [addressEn, setAddressEn] = useState("");
+  const [addressMr, setAddressMr] = useState("");
   const [villageId, setVillageId] = useState(defaultVillageId);
+
+  const handleEnNameChange = (val: string) => {
+    setNameEn(val);
+    if (!nameMr || nameMr === autoBilingualName(nameEn).mr) {
+      setNameMr(autoBilingualName(val).mr);
+    }
+  };
+
+  const handleMrNameChange = (val: string) => {
+    setNameMr(val);
+    if (!nameEn || nameEn === autoBilingualName(nameMr).en) {
+      setNameEn(autoBilingualName(val).en);
+    }
+  };
+
+  const handleEnOwnerChange = (val: string) => {
+    setOwnerEn(val);
+    if (!ownerMr || ownerMr === autoBilingualName(ownerEn).mr) {
+      setOwnerMr(autoBilingualName(val).mr);
+    }
+  };
+
+  const handleMrOwnerChange = (val: string) => {
+    setOwnerMr(val);
+    if (!ownerEn || ownerEn === autoBilingualName(ownerMr).en) {
+      setOwnerEn(autoBilingualName(val).en);
+    }
+  };
+
+  const handleEnAddressChange = (val: string) => {
+    setAddressEn(val);
+    if (!addressMr || addressMr === autoBilingualName(addressEn).mr) {
+      setAddressMr(autoBilingualName(val).mr);
+    }
+  };
+
+  const handleMrAddressChange = (val: string) => {
+    setAddressMr(val);
+    if (!addressEn || addressEn === autoBilingualName(addressMr).en) {
+      setAddressEn(autoBilingualName(val).en);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    const finalNameMr = nameMr.trim() || autoBilingualName(nameEn).mr;
+    const finalNameEn = nameEn.trim() || autoBilingualName(nameMr).en;
+    if (!finalNameMr && !finalNameEn) return;
 
-    // Automatically convert/transliterate based on input so both scripts are populated
-    const namePair = autoBilingualName(name);
-    const ownerPair = autoBilingualName(owner || (language === "mr" ? "दुकानदार" : "Shopkeeper"));
-    const addressPair = autoBilingualName(address || (language === "mr" ? "मुख्य रस्ता" : "Main Road"));
+    const finalOwnerMr = ownerMr.trim() || autoBilingualName(ownerEn).mr || (language === "mr" ? "दुकानदार" : "Shopkeeper");
+    const finalOwnerEn = ownerEn.trim() || autoBilingualName(ownerMr).en || "Shopkeeper";
+
+    const finalAddressMr = addressMr.trim() || autoBilingualName(addressEn).mr || (language === "mr" ? "मुख्य रस्ता" : "Main Road");
+    const finalAddressEn = addressEn.trim() || autoBilingualName(addressMr).en || "Main Road";
 
     addShop({
-      name: namePair.mr,
-      nameEn: namePair.en,
-      owner: ownerPair.mr,
-      ownerEn: ownerPair.en,
+      name: finalNameMr,
+      nameEn: finalNameEn,
+      owner: finalOwnerMr,
+      ownerEn: finalOwnerEn,
       mobile: mobile.trim() || "+91 98000 00000",
-      address: addressPair.mr,
-      addressEn: addressPair.en,
+      address: finalAddressMr,
+      addressEn: finalAddressEn,
       villageId,
       outstandingBalance: 0,
     });
@@ -87,33 +135,67 @@ function AddNewShopContent() {
           </select>
         </div>
 
-        {/* Shop Name */}
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            {t.shopNameLabel} *
-          </label>
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t.shopNamePlaceholder}
-            className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
-          />
+        <div className="bg-emerald-50/60 border border-emerald-200/60 rounded-2xl p-3 text-xs text-emerald-800 flex items-start gap-2 font-medium">
+          <span className="text-base">⚡</span>
+          <span>{t.dualLanguageHelp}</span>
         </div>
 
-        {/* Owner Name */}
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            {t.ownerNameLabel}
-          </label>
-          <input
-            type="text"
-            value={owner}
-            onChange={(e) => setOwner(e.target.value)}
-            placeholder={t.ownerNamePlaceholder}
-            className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
-          />
+        {/* Shop Name - English & Marathi */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              {t.shopNameEnLabel} *
+            </label>
+            <input
+              type="text"
+              required={!nameMr}
+              value={nameEn}
+              onChange={(e) => handleEnNameChange(e.target.value)}
+              placeholder="e.g. Shri Mahalaxmi Kirana"
+              className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              {t.shopNameMrLabel} *
+            </label>
+            <input
+              type="text"
+              required={!nameEn}
+              value={nameMr}
+              onChange={(e) => handleMrNameChange(e.target.value)}
+              placeholder="उदा. श्री महालक्ष्मी किराणा"
+              className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium font-marathi"
+            />
+          </div>
+        </div>
+
+        {/* Owner Name - English & Marathi */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              {t.ownerNameEnLabel}
+            </label>
+            <input
+              type="text"
+              value={ownerEn}
+              onChange={(e) => handleEnOwnerChange(e.target.value)}
+              placeholder="e.g. Ramesh Patil / Ankita Utture"
+              className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              {t.ownerNameMrLabel}
+            </label>
+            <input
+              type="text"
+              value={ownerMr}
+              onChange={(e) => handleMrOwnerChange(e.target.value)}
+              placeholder="उदा. रमेश पाटील / अंकिता उत्तुरे"
+              className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium font-marathi"
+            />
+          </div>
         </div>
 
         {/* Mobile Number */}
@@ -126,22 +208,36 @@ function AddNewShopContent() {
             value={mobile}
             onChange={(e) => setMobile(e.target.value)}
             placeholder={t.mobilePlaceholder}
-            className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
+            className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
           />
         </div>
 
-        {/* Address */}
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            {t.addressLabel}
-          </label>
-          <textarea
-            rows={2}
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder={t.addressPlaceholder}
-            className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
-          />
+        {/* Address - English & Marathi */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              {language === "mr" ? "पत्ता (English)" : "Address (English)"}
+            </label>
+            <textarea
+              rows={2}
+              value={addressEn}
+              onChange={(e) => handleEnAddressChange(e.target.value)}
+              placeholder="e.g. Near Bus Stand, Main Road"
+              className="w-full px-4 py-2 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              {language === "mr" ? "पत्ता (मराठी)" : "Address (Marathi)"}
+            </label>
+            <textarea
+              rows={2}
+              value={addressMr}
+              onChange={(e) => handleMrAddressChange(e.target.value)}
+              placeholder="उदा. बस स्टँड जवळ, मुख्य रस्ता"
+              className="w-full px-4 py-2 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium font-marathi"
+            />
+          </div>
         </div>
 
         {/* Action Buttons */}

@@ -216,6 +216,15 @@ export const translations = {
     salespersonMobilePlaceholder: "९८२२० ५६७८९",
     assignVillagesLabel: "नेमून दिलेले कार्यक्षेत्र (गाव)",
     saveSalespersonBtn: "सेल्समन जतन करा",
+
+    // Dual language & auto-sync labels
+    marathiNameLabel: "मराठी नाव",
+    englishNameLabel: "इंग्रजी नाव (English Name)",
+    dualLanguageHelp: "कोणत्याही एका भाषेत टाइप करा, दुसऱ्या भाषेत आपोआप तयार होईल. आवश्यकतेनुसार बदलू शकता.",
+    shopNameMrLabel: "दुकानाचे नाव (मराठी)",
+    shopNameEnLabel: "Shop Name (English)",
+    ownerNameMrLabel: "मालकाचे नाव (मराठी)",
+    ownerNameEnLabel: "Owner Name (English)",
   },
 
   en: {
@@ -435,5 +444,14 @@ export const translations = {
     salespersonMobilePlaceholder: "+91 98220 56789",
     assignVillagesLabel: "Assigned Route / Village",
     saveSalespersonBtn: "Save Salesperson",
+
+    // Dual language & auto-sync labels
+    marathiNameLabel: "Marathi Name (मराठी)",
+    englishNameLabel: "English Name",
+    dualLanguageHelp: "Type in English or Marathi; the other language auto-fills in real time.",
+    shopNameMrLabel: "Shop Name (Marathi)",
+    shopNameEnLabel: "Shop Name (English)",
+    ownerNameMrLabel: "Owner Name (Marathi)",
+    ownerNameEnLabel: "Owner Name (English)",
   },
 };

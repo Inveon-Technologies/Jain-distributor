@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
-import { formatBilingual } from "@/utils/transliterate";
+import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
 import { Salesperson } from "@/data/mockData";
 import { Users, Phone, Mail, CheckCircle2, Plus, X, UserPlus, Check, Trash2, Eye, EyeOff, Clock } from "lucide-react";
@@ -14,7 +14,8 @@ export default function AdminSalespersonsPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [spToDelete, setSpToDelete] = useState<Salesperson | null>(null);
-  const [name, setName] = useState("");
+  const [nameMr, setNameMr] = useState("");
+  const [nameEn, setNameEn] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("123456");
@@ -22,12 +23,29 @@ export default function AdminSalespersonsPage() {
   const [assignedVillage, setAssignedVillage] = useState(villages[0]?.id || "v-1");
   const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
 
+  const handleEnNameChange = (val: string) => {
+    setNameEn(val);
+    if (!nameMr || nameMr === autoBilingualName(nameEn).mr) {
+      setNameMr(autoBilingualName(val).mr);
+    }
+  };
+
+  const handleMrNameChange = (val: string) => {
+    setNameMr(val);
+    if (!nameEn || nameEn === autoBilingualName(nameMr).en) {
+      setNameEn(autoBilingualName(val).en);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim()) return;
+    const finalMr = nameMr.trim() || autoBilingualName(nameEn).mr;
+    const finalEn = nameEn.trim() || autoBilingualName(nameMr).en;
+    if (!finalMr || !email.trim()) return;
 
     addSalesperson({
-      name: name.trim(),
+      name: finalMr,
+      nameEn: finalEn,
       email: email.trim(),
       mobile: mobile.trim() || "+91 98000 00000",
       password: password.trim() || "123456",
@@ -35,7 +53,8 @@ export default function AdminSalespersonsPage() {
       status,
     });
 
-    setName("");
+    setNameMr("");
+    setNameEn("");
     setEmail("");
     setMobile("");
     setPassword("123456");
@@ -224,18 +243,39 @@ export default function AdminSalespersonsPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  {t.salespersonNameLabel} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={t.salespersonNamePlaceholder}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
-                />
+              <div className="bg-emerald-50/60 border border-emerald-200/60 rounded-xl p-2.5 text-[11px] text-emerald-800 flex items-start gap-1.5 font-medium">
+                <span className="text-sm">⚡</span>
+                <span>{t.dualLanguageHelp}</span>
+              </div>
+
+              {/* Name - English & Marathi */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    {t.englishNameLabel} *
+                  </label>
+                  <input
+                    type="text"
+                    required={!nameMr}
+                    value={nameEn}
+                    onChange={(e) => handleEnNameChange(e.target.value)}
+                    placeholder="e.g. Ankita Utture"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    {t.marathiNameLabel} *
+                  </label>
+                  <input
+                    type="text"
+                    required={!nameEn}
+                    value={nameMr}
+                    onChange={(e) => handleMrNameChange(e.target.value)}
+                    placeholder="उदा. अंकिता उत्तुरे"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium font-marathi"
+                  />
+                </div>
               </div>
 
               <div>
