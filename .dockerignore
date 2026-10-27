@@ -11,3 +11,4 @@ docs
 .env*
 docker-compose*.yml
 Dockerfile
+deploy

@@ -59,7 +59,11 @@ docker compose exec api node dist/db/seed.js   # optional demo data
 ### CI/CD
 
 * **CI** (`.github/workflows/ci.yml`) runs on every PR and on `main`: web lint/typecheck/build, API lint/typecheck/tests (against PostgreSQL)/build, and Docker image builds. Images are pushed to GHCR from `main`.
-* **Release** (`.github/workflows/release.yml`) runs on `v*.*.*` tags: versioned images on GHCR, a GitHub Release built from [`CHANGELOG.md`](CHANGELOG.md), and an optional SSH deploy using [`deploy/docker-compose.prod.yml`](deploy/docker-compose.prod.yml).
+* **Release** (`.github/workflows/release.yml`) runs on `v*.*.*` tags: versioned images on GHCR, a GitHub Release built from [`CHANGELOG.md`](CHANGELOG.md), and an optional SSH deploy to a VPS.
+
+### Production server (VPS)
+
+[`deploy/README.md`](deploy/README.md) covers the full VPS setup: server preparation script, HTTPS via Caddy on your domain, the production `.env`, GitHub deploy secrets, nightly database backups and rollback.
 
 Release notes: [`RELEASE_NOTES.md`](RELEASE_NOTES.md).
 
