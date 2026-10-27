@@ -5,6 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
+import { MarathiSuggestInput } from "@/components/common/MarathiSuggestInput";
 import { Salesperson } from "@/data/mockData";
 import { Users, Phone, Mail, CheckCircle2, Plus, X, UserPlus, Check, Trash2, Eye, EyeOff, Clock } from "lucide-react";
 
@@ -14,8 +15,8 @@ export default function AdminSalespersonsPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [spToDelete, setSpToDelete] = useState<Salesperson | null>(null);
-  const [nameMr, setNameMr] = useState("");
-  const [nameEn, setNameEn] = useState("");
+  const [name, setName] = useState("");
+  const [namePair, setNamePair] = useState<{ mr: string; en: string }>({ mr: "", en: "" });
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("123456");
@@ -23,25 +24,12 @@ export default function AdminSalespersonsPage() {
   const [assignedVillage, setAssignedVillage] = useState(villages[0]?.id || "v-1");
   const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
 
-  const handleEnNameChange = (val: string) => {
-    setNameEn(val);
-    if (!nameMr || nameMr === autoBilingualName(nameEn).mr) {
-      setNameMr(autoBilingualName(val).mr);
-    }
-  };
-
-  const handleMrNameChange = (val: string) => {
-    setNameMr(val);
-    if (!nameEn || nameEn === autoBilingualName(nameMr).en) {
-      setNameEn(autoBilingualName(val).en);
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalMr = nameMr.trim() || autoBilingualName(nameEn).mr;
-    const finalEn = nameEn.trim() || autoBilingualName(nameMr).en;
-    if (!finalMr || !email.trim()) return;
+    if (!name.trim() || !email.trim()) return;
+
+    const finalMr = namePair.mr || autoBilingualName(name).mr;
+    const finalEn = namePair.en || autoBilingualName(name).en;
 
     addSalesperson({
       name: finalMr,
@@ -53,8 +41,8 @@ export default function AdminSalespersonsPage() {
       status,
     });
 
-    setNameMr("");
-    setNameEn("");
+    setName("");
+    setNamePair({ mr: "", en: "" });
     setEmail("");
     setMobile("");
     setPassword("123456");
@@ -188,29 +176,14 @@ export default function AdminSalespersonsPage() {
               </div>
             </div>
 
-            {/* Assigned Territories */}
-            <div className="pt-2 text-xs">
-              <span className="text-slate-400 font-semibold block mb-1">
+            {/* Assigned Route */}
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-slate-400 font-medium">
                 {t.assignedVillages}:
               </span>
-              <div className="flex flex-wrap gap-1">
-                {sp.assignedVillages.map((vid) => {
-                  const v = villages.find((x) => x.id === vid);
-                  return (
-                    <span
-                      key={vid}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-50 text-brand-primary font-bold text-[11px] flex items-center gap-1"
-                    >
-                      <span>📍</span>
-                      <BilingualName
-                        mr={v?.marathiName}
-                        en={v?.englishName}
-                        secondaryClassName="text-[10px] font-normal text-slate-500 ml-1"
-                      />
-                    </span>
-                  );
-                })}
-              </div>
+              <span className="font-bold text-slate-700">
+                {sp.assignedVillages.length} {t.villages}
+              </span>
             </div>
           </div>
         ))}
@@ -218,7 +191,7 @@ export default function AdminSalespersonsPage() {
 
       {/* Add Salesperson Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -243,39 +216,17 @@ export default function AdminSalespersonsPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
-              <div className="bg-emerald-50/60 border border-emerald-200/60 rounded-xl p-2.5 text-[11px] text-emerald-800 flex items-start gap-1.5 font-medium">
-                <span className="text-sm">⚡</span>
-                <span>{t.dualLanguageHelp}</span>
-              </div>
-
-              {/* Name - English & Marathi */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    {t.englishNameLabel} *
-                  </label>
-                  <input
-                    type="text"
-                    required={!nameMr}
-                    value={nameEn}
-                    onChange={(e) => handleEnNameChange(e.target.value)}
-                    placeholder="e.g. Ankita Utture"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    {t.marathiNameLabel} *
-                  </label>
-                  <input
-                    type="text"
-                    required={!nameEn}
-                    value={nameMr}
-                    onChange={(e) => handleMrNameChange(e.target.value)}
-                    placeholder="उदा. अंकिता उत्तुरे"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium font-marathi"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  {t.salespersonNameLabel} *
+                </label>
+                <MarathiSuggestInput
+                  required
+                  value={name}
+                  onChange={setName}
+                  onBilingualChange={setNamePair}
+                  placeholder={language === "mr" ? "सेल्समनचे नाव (उदा. Varsha Patil किंवा वर्षा पाटील)" : "Enter name (e.g. Varsha Patil, Kedar)"}
+                />
               </div>
 
               <div>
@@ -396,6 +347,7 @@ export default function AdminSalespersonsPage() {
           </div>
         </div>
       )}
+
       {/* Delete Confirmation Modal */}
       {spToDelete && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">

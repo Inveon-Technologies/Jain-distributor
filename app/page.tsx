@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
+import { MarathiSuggestInput } from "@/components/common/MarathiSuggestInput";
 import { Logo } from "@/components/common/Logo";
 import { LanguageToggle } from "@/components/common/LanguageToggle";
 import {
@@ -40,28 +41,14 @@ export default function LoginPage() {
 
   // Sign up modal for new salespersons
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
-  const [newNameEn, setNewNameEn] = useState("");
-  const [newNameMr, setNewNameMr] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newNamePair, setNewNamePair] = useState<{ mr: string; en: string }>({ mr: "", en: "" });
   const [newEmail, setNewEmail] = useState("");
   const [newMobile, setNewMobile] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [newVillage, setNewVillage] = useState(villages[0]?.id || "v-1");
   const [registrationSuccessMsg, setRegistrationSuccessMsg] = useState("");
-
-  const handleEnNewNameChange = (val: string) => {
-    setNewNameEn(val);
-    if (!newNameMr || newNameMr === autoBilingualName(newNameEn).mr) {
-      setNewNameMr(autoBilingualName(val).mr);
-    }
-  };
-
-  const handleMrNewNameChange = (val: string) => {
-    setNewNameMr(val);
-    if (!newNameEn || newNameEn === autoBilingualName(newNameMr).en) {
-      setNewNameEn(autoBilingualName(val).en);
-    }
-  };
 
   // Forgot password modal
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
@@ -104,8 +91,8 @@ export default function LoginPage() {
 
   const handleSalespersonSignUp = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalMr = newNameMr.trim() || autoBilingualName(newNameEn).mr;
-    const finalEn = newNameEn.trim() || autoBilingualName(newNameMr).en;
+    const finalMr = newNamePair.mr || autoBilingualName(newName).mr;
+    const finalEn = newNamePair.en || autoBilingualName(newName).en;
     if (!finalMr || !newEmail.trim()) return;
 
     registerSalesperson({
@@ -118,8 +105,8 @@ export default function LoginPage() {
 
     setIsSignUpOpen(false);
     setRegistrationSuccessMsg(t.registrationSuccessPending);
-    setNewNameEn("");
-    setNewNameMr("");
+    setNewName("");
+    setNewNamePair({ mr: "", en: "" });
     setNewEmail("");
     setNewMobile("");
     setNewPassword("");
@@ -409,46 +396,20 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSalespersonSignUp} className="space-y-3">
-              <div className="bg-emerald-50/60 border border-emerald-200/60 rounded-xl p-2 text-[11px] text-emerald-800 flex items-start gap-1.5 font-medium">
-                <span className="text-sm">⚡</span>
-                <span>{t.dualLanguageHelp}</span>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  {t.fullNameLabel} *
+                </label>
+                <MarathiSuggestInput
+                  required
+                  value={newName}
+                  onChange={setNewName}
+                  onBilingualChange={setNewNamePair}
+                  icon={<User className="w-4 h-4" />}
+                  placeholder={language === "mr" ? "पूर्ण नाव (उदा. Nilesh Shinde किंवा निलेश शिंदे)" : "Full name (e.g. Nilesh Shinde)"}
+                />
               </div>
 
-              {/* Full Name - English & Marathi */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    {t.englishNameLabel} *
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required={!newNameMr}
-                      value={newNameEn}
-                      onChange={(e) => handleEnNewNameChange(e.target.value)}
-                      placeholder="e.g. Ankita Utture"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    {t.marathiNameLabel} *
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required={!newNameEn}
-                      value={newNameMr}
-                      onChange={(e) => handleMrNewNameChange(e.target.value)}
-                      placeholder="उदा. अंकिता उत्तुरे"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-marathi"
-                    />
-                  </div>
-                </div>
-              </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">

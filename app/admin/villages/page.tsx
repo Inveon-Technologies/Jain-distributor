@@ -5,6 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { autoBilingualName } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
+import { MarathiSuggestInput } from "@/components/common/MarathiSuggestInput";
 import { Village } from "@/data/mockData";
 import { MapPin, Plus, X, Check, Trash2 } from "lucide-react";
 
@@ -14,59 +15,31 @@ export default function AdminVillagesPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [villageToDelete, setVillageToDelete] = useState<Village | null>(null);
-  const [vNameMr, setVNameMr] = useState("");
-  const [vNameEn, setVNameEn] = useState("");
-  const [talukaMr, setTalukaMr] = useState("");
-  const [talukaEn, setTalukaEn] = useState("");
-
-  const handleEnVillageChange = (val: string) => {
-    setVNameEn(val);
-    if (!vNameMr || vNameMr === autoBilingualName(vNameEn).mr) {
-      setVNameMr(autoBilingualName(val).mr);
-    }
-  };
-
-  const handleMrVillageChange = (val: string) => {
-    setVNameMr(val);
-    if (!vNameEn || vNameEn === autoBilingualName(vNameMr).en) {
-      setVNameEn(autoBilingualName(val).en);
-    }
-  };
-
-  const handleEnTalukaChange = (val: string) => {
-    setTalukaEn(val);
-    if (!talukaMr || talukaMr === autoBilingualName(talukaEn).mr) {
-      setTalukaMr(autoBilingualName(val).mr);
-    }
-  };
-
-  const handleMrTalukaChange = (val: string) => {
-    setTalukaMr(val);
-    if (!talukaEn || talukaEn === autoBilingualName(talukaMr).en) {
-      setTalukaEn(autoBilingualName(val).en);
-    }
-  };
+  const [villageName, setVillageName] = useState("");
+  const [villageNamePair, setVillageNamePair] = useState<{ mr: string; en: string }>({ mr: "", en: "" });
+  const [taluka, setTaluka] = useState("");
+  const [talukaPair, setTalukaPair] = useState<{ mr: string; en: string }>({ mr: "", en: "" });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalMr = vNameMr.trim() || autoBilingualName(vNameEn).mr;
-    const finalEn = vNameEn.trim() || autoBilingualName(vNameMr).en;
-    if (!finalMr && !finalEn) return;
+    if (!villageName.trim()) return;
 
-    const tMr = talukaMr.trim() || autoBilingualName(talukaEn).mr || "पंढरपूर";
-    const tEn = talukaEn.trim() || autoBilingualName(talukaMr).en || "Pandharpur";
+    const vMr = villageNamePair.mr || autoBilingualName(villageName).mr;
+    const vEn = villageNamePair.en || autoBilingualName(villageName).en;
+    const tMr = talukaPair.mr || autoBilingualName(taluka).mr || "पंढरपूर";
+    const tEn = talukaPair.en || autoBilingualName(taluka).en || "Pandharpur";
 
     addVillage({
-      marathiName: finalMr,
-      englishName: finalEn,
+      marathiName: vMr,
+      englishName: vEn,
       taluka: language === "mr" ? tMr : tEn,
       district: language === "mr" ? "सोलापूर" : "Solapur",
     });
 
-    setVNameMr("");
-    setVNameEn("");
-    setTalukaMr("");
-    setTalukaEn("");
+    setVillageName("");
+    setVillageNamePair({ mr: "", en: "" });
+    setTaluka("");
+    setTalukaPair({ mr: "", en: "" });
     setIsModalOpen(false);
   };
 
@@ -185,68 +158,30 @@ export default function AdminVillagesPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3.5">
-              <div className="bg-emerald-50/60 border border-emerald-200/60 rounded-xl p-2.5 text-[11px] text-emerald-800 flex items-start gap-1.5 font-medium">
-                <span className="text-sm">⚡</span>
-                <span>{t.dualLanguageHelp}</span>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                  {t.villageNameLabel} *
+                </label>
+                <MarathiSuggestInput
+                  required
+                  value={villageName}
+                  onChange={setVillageName}
+                  onBilingualChange={setVillageNamePair}
+                  placeholder={language === "mr" ? "गावाचे नाव टाइप करा (उदा. Kolhapur किंवा कोल्हापूर)" : "Type village name (e.g. Kolhapur, Hatkanangale)"}
+                />
               </div>
 
-              {/* Village Name - English & Marathi */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    {t.englishNameLabel} *
-                  </label>
-                  <input
-                    type="text"
-                    required={!vNameMr}
-                    value={vNameEn}
-                    onChange={(e) => handleEnVillageChange(e.target.value)}
-                    placeholder="e.g. Kolhapur, Hatkanangale"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    {t.marathiNameLabel} *
-                  </label>
-                  <input
-                    type="text"
-                    required={!vNameEn}
-                    value={vNameMr}
-                    onChange={(e) => handleMrVillageChange(e.target.value)}
-                    placeholder="उदा. कोल्हापूर, हातकणंगले"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium font-marathi"
-                  />
-                </div>
-              </div>
-
-              {/* Taluka - English & Marathi */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    {language === "mr" ? "तालुका (English)" : "Taluka (English)"}
-                  </label>
-                  <input
-                    type="text"
-                    value={talukaEn}
-                    onChange={(e) => handleEnTalukaChange(e.target.value)}
-                    placeholder="e.g. Pandharpur"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    {language === "mr" ? "तालुका (मराठी)" : "Taluka (Marathi)"}
-                  </label>
-                  <input
-                    type="text"
-                    value={talukaMr}
-                    onChange={(e) => handleMrTalukaChange(e.target.value)}
-                    placeholder="उदा. पंढरपूर"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-medium font-marathi"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                  {t.talukaLabel}
+                </label>
+                <MarathiSuggestInput
+                  value={taluka}
+                  onChange={setTaluka}
+                  onBilingualChange={setTalukaPair}
+                  placeholder={language === "mr" ? "तालुका टाइप करा (उदा. Pandharpur)" : "Type taluka name (e.g. Pandharpur)"}
+                />
               </div>
 
               <div className="pt-2 flex gap-3">
@@ -269,6 +204,7 @@ export default function AdminVillagesPage() {
           </div>
         </div>
       )}
+
       {/* Delete Confirmation Modal */}
       {villageToDelete && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
