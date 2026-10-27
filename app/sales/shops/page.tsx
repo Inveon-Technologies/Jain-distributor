@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { Shop } from "@/data/mockData";
 import { BilingualName } from "@/components/common/BilingualName";
+import { autoBilingualName } from "@/utils/transliterate";
 import {
   Store,
   MapPin,
@@ -15,18 +16,56 @@ import {
   ArrowRight,
   ArrowLeft,
   Search,
+  Pencil,
+  X,
+  Check,
 } from "lucide-react";
 
 function ShopsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { language, villages, shops, selectedVillage, setSelectedVillage, setSelectedShop } = useApp();
+  const { language, villages, shops, updateShop, selectedVillage, setSelectedVillage, setSelectedShop } = useApp();
   const t = translations[language];
 
   const villageParam = searchParams.get("village");
   const currentVillage = villages.find((v) => v.id === villageParam) || selectedVillage || villages[0];
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [shopToEdit, setShopToEdit] = useState<Shop | null>(null);
+
+  const [editShopName, setEditShopName] = useState("");
+  const [editOwnerName, setEditOwnerName] = useState("");
+  const [editMobile, setEditMobile] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+
+  const openEditModal = (s: Shop) => {
+    setShopToEdit(s);
+    setEditShopName(language === "en" ? (s.nameEn || s.name) : (s.name || s.nameEn));
+    setEditOwnerName(language === "en" ? (s.ownerEn || s.owner) : (s.owner || s.ownerEn));
+    setEditMobile(s.mobile);
+    setEditAddress(language === "en" ? (s.addressEn || s.address) : (s.address || s.addressEn));
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shopToEdit || !editShopName.trim() || !editOwnerName.trim()) return;
+
+    const shopPair = autoBilingualName(editShopName);
+    const ownerPair = autoBilingualName(editOwnerName);
+    const addressPair = autoBilingualName(editAddress);
+
+    updateShop(shopToEdit.id, {
+      name: shopPair.mr,
+      nameEn: shopPair.en,
+      owner: ownerPair.mr,
+      ownerEn: ownerPair.en,
+      mobile: editMobile.trim() || shopToEdit.mobile,
+      address: addressPair.mr,
+      addressEn: addressPair.en,
+    });
+
+    setShopToEdit(null);
+  };
 
   const villageShops = shops.filter((s) => s.villageId === currentVillage.id);
   const filteredShops = villageShops.filter((s) => {
@@ -154,6 +193,15 @@ function ShopsContent() {
                           </span>
                         </div>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(shop)}
+                        title={t.editShop}
+                        className="p-1.5 text-slate-400 hover:text-brand-primary hover:bg-emerald-50 rounded-xl transition cursor-pointer shrink-0"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
                     </div>
 
                     {/* Details */}
@@ -184,6 +232,114 @@ function ShopsContent() {
           </div>
         )}
       </div>
+      {/* Edit Shop Modal */}
+      {shopToEdit && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-100 space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-brand-primary flex items-center justify-center shrink-0">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-900">
+                    {t.editShop}
+                  </h3>
+                  <span className="text-xs text-slate-500 font-medium">
+                    {t.editModalTitle}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShopToEdit(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {t.shopNameLabel} *
+                </label>
+                <input
+                  type="text"
+                  value={editShopName}
+                  onChange={(e) => setEditShopName(e.target.value)}
+                  placeholder="e.g. Mahavir Kirana"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                  required
+                  autoFocus
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {language === "mr"
+                    ? "इंग्रजी किंवा मराठीत नाव टाका, दोन्ही भाषांत आपोआप सेव्ह होईल."
+                    : "Type in English or Marathi, will auto-save in both languages."}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {t.ownerNameLabel} *
+                </label>
+                <input
+                  type="text"
+                  value={editOwnerName}
+                  onChange={(e) => setEditOwnerName(e.target.value)}
+                  placeholder="e.g. Varsha Patil, Kedar"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {t.mobileLabel}
+                </label>
+                <input
+                  type="tel"
+                  value={editMobile}
+                  onChange={(e) => setEditMobile(e.target.value)}
+                  placeholder="+91 98220 00000"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {t.addressLabel}
+                </label>
+                <input
+                  type="text"
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  placeholder="e.g. Near Bus Stand, Main Road"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShopToEdit(null)}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 cursor-pointer"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-brand-primary hover:bg-brand-deep text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{t.saveChanges}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

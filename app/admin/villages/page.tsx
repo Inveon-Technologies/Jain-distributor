@@ -6,16 +6,45 @@ import { translations } from "@/data/translations";
 import { autoBilingualName } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
 import { Village } from "@/data/mockData";
-import { MapPin, Plus, X, Check, Trash2 } from "lucide-react";
+import { MapPin, Plus, X, Check, Trash2, Pencil } from "lucide-react";
 
 export default function AdminVillagesPage() {
-  const { language, villages, addVillage, deleteVillage } = useApp();
+  const { language, villages, addVillage, updateVillage, deleteVillage } = useApp();
   const t = translations[language];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [villageToDelete, setVillageToDelete] = useState<Village | null>(null);
+  const [villageToEdit, setVillageToEdit] = useState<Village | null>(null);
   const [villageName, setVillageName] = useState("");
   const [taluka, setTaluka] = useState("");
+
+  const [editVillageName, setEditVillageName] = useState("");
+  const [editTaluka, setEditTaluka] = useState("");
+  const [editDistrict, setEditDistrict] = useState("");
+
+  const openEditModal = (v: Village) => {
+    setVillageToEdit(v);
+    setEditVillageName(language === "en" ? (v.englishName || v.marathiName) : (v.marathiName || v.englishName));
+    setEditTaluka(v.taluka);
+    setEditDistrict(v.district);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!villageToEdit || !editVillageName.trim()) return;
+
+    const vPair = autoBilingualName(editVillageName);
+    const talukaPair = autoBilingualName(editTaluka || villageToEdit.taluka);
+
+    updateVillage(villageToEdit.id, {
+      marathiName: vPair.mr,
+      englishName: vPair.en,
+      taluka: language === "mr" ? talukaPair.mr : talukaPair.en,
+      district: editDistrict.trim() || villageToEdit.district,
+    });
+
+    setVillageToEdit(null);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,14 +114,24 @@ export default function AdminVillagesPage() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setVillageToDelete(v)}
-                title={t.deleteVillage}
-                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition cursor-pointer shrink-0"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => openEditModal(v)}
+                  title={t.editVillage}
+                  className="p-1.5 text-slate-400 hover:text-brand-primary hover:bg-emerald-50 rounded-xl transition cursor-pointer"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVillageToDelete(v)}
+                  title={t.deleteVillage}
+                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100 text-center text-xs">
@@ -193,6 +232,100 @@ export default function AdminVillagesPage() {
                 >
                   <Check className="w-4 h-4" />
                   <span>{t.saveVillageBtn}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Village Modal */}
+      {villageToEdit && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-100 space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-brand-primary flex items-center justify-center shrink-0">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-900">
+                    {t.editVillage}
+                  </h3>
+                  <span className="text-xs text-slate-500 font-medium">
+                    {t.editModalTitle}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVillageToEdit(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {t.villageNameLabel} *
+                </label>
+                <input
+                  type="text"
+                  value={editVillageName}
+                  onChange={(e) => setEditVillageName(e.target.value)}
+                  placeholder="e.g. Kolhapur, Kedar, Pandharpur"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                  required
+                  autoFocus
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {language === "mr"
+                    ? "इंग्रजी किंवा मराठीत नाव टाका, दोन्ही भाषांत आपोआप सेव्ह होईल."
+                    : "Type in English or Marathi, will auto-save in both languages."}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {t.talukaLabel}
+                </label>
+                <input
+                  type="text"
+                  value={editTaluka}
+                  onChange={(e) => setEditTaluka(e.target.value)}
+                  placeholder="e.g. Pandharpur, Karveer, Hatkanangale"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {t.districtLabel}
+                </label>
+                <input
+                  type="text"
+                  value={editDistrict}
+                  onChange={(e) => setEditDistrict(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setVillageToEdit(null)}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 cursor-pointer"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-brand-primary hover:bg-brand-deep text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{t.saveChanges}</span>
                 </button>
               </div>
             </form>

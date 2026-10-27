@@ -45,8 +45,10 @@ interface AppContextType {
   selectedShop: Shop | null;
   setSelectedShop: (s: Shop | null) => void;
   addShop: (newShop: Omit<Shop, "id">) => Shop;
+  updateShop: (shopId: string, updatedData: Partial<Shop>) => void;
   deleteShop: (shopId: string) => void;
   addVillage: (newVillage: { marathiName: string; englishName: string; taluka: string; district: string }) => Village;
+  updateVillage: (villageId: string, updatedData: Partial<Village>) => void;
   deleteVillage: (villageId: string) => void;
   addSalesperson: (data: {
     name: string;
@@ -57,6 +59,7 @@ interface AppContextType {
     assignedVillages?: string[];
     status?: "ACTIVE" | "INACTIVE";
   }) => Salesperson;
+  updateSalesperson: (salespersonId: string, updatedData: Partial<Salesperson>) => void;
   deleteSalesperson: (salespersonId: string) => void;
   createOrder: (orderData: {
     shopId: string;
@@ -255,6 +258,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return created;
   };
 
+  const updateShop = (shopId: string, updatedData: Partial<Shop>) => {
+    setShops((prev) => {
+      const oldShop = prev.find((s) => s.id === shopId);
+      const newShops = prev.map((s) => (s.id === shopId ? { ...s, ...updatedData } : s));
+
+      if (oldShop && updatedData.villageId && updatedData.villageId !== oldShop.villageId) {
+        setVillages((vPrev) =>
+          vPrev.map((v) => {
+            if (v.id === oldShop.villageId) return { ...v, shopsCount: Math.max(0, v.shopsCount - 1) };
+            if (v.id === updatedData.villageId) return { ...v, shopsCount: v.shopsCount + 1 };
+            return v;
+          })
+        );
+      }
+      return newShops;
+    });
+  };
+
   const deleteShop = (shopId: string) => {
     const targetShop = shops.find((s) => s.id === shopId);
     setShops((prev) => prev.filter((s) => s.id !== shopId));
@@ -282,9 +303,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return created;
   };
 
+  const updateVillage = (villageId: string, updatedData: Partial<Village>) => {
+    setVillages((prev) =>
+      prev.map((v) => (v.id === villageId ? { ...v, ...updatedData } : v))
+    );
+  };
+
   const deleteVillage = (villageId: string) => {
     setVillages((prev) => prev.filter((v) => v.id !== villageId));
     setShops((prev) => prev.filter((s) => s.villageId !== villageId));
+  };
+
+  const updateSalesperson = (salespersonId: string, updatedData: Partial<Salesperson>) => {
+    setSalespersons((prev) =>
+      prev.map((sp) => (sp.id === salespersonId ? { ...sp, ...updatedData } : sp))
+    );
   };
 
   const deleteSalesperson = (salespersonId: string) => {
@@ -361,10 +394,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         selectedShop,
         setSelectedShop,
         addShop,
+        updateShop,
         deleteShop,
         addVillage,
+        updateVillage,
         deleteVillage,
         addSalesperson,
+        updateSalesperson,
         deleteSalesperson,
         toggleSalespersonStatus,
         updateSalespersonPassword,
