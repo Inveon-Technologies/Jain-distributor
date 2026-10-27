@@ -27,7 +27,6 @@ export default function AdminSalespersonsPage() {
   const [editEmail, setEditEmail] = useState("");
   const [editMobile, setEditMobile] = useState("");
   const [editPassword, setEditPassword] = useState("");
-  const [showEditPassword, setShowEditPassword] = useState(false);
   const [editAssignedVillage, setEditAssignedVillage] = useState("v-1");
   const [editStatus, setEditStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
 
