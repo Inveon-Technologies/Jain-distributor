@@ -87,7 +87,8 @@ jobs:
   deploy:
     name: Deploy to server
     needs: images
-    # Opt in by setting the repository variable DEPLOY_ENABLED=true and the DEPLOY_* secrets.
+    # Opt in by setting the repository variable DEPLOY_ENABLED=true and the DEPLOY_* secrets
+    # (see deploy/README.md).
     if: vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: production
@@ -95,15 +96,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.TAG }}
-      - name: Copy compose file
+      - name: Copy compose, Caddy and backup files
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          source: deploy/docker-compose.prod.yml
-          target: ${{ secrets.DEPLOY_PATH }}
+          source: deploy/docker-compose.prod.yml,deploy/caddy/Caddyfile,deploy/backup-db.sh
+          target: ${{ secrets.DEPLOY_PATH || '/opt/jain-distributor' }}
           strip_components: 1
       - name: Pull and restart
         uses: appleboy/ssh-action@v1.2.0
@@ -119,13 +120,16 @@ jobs:
           envs: GHCR_USER,GHCR_TOKEN,IMAGE_PREFIX,TAG
           script: |
             set -e
-            cd "${{ secrets.DEPLOY_PATH }}"
+            cd "${{ secrets.DEPLOY_PATH || '/opt/jain-distributor' }}"
+            chmod 750 backup-db.sh
             prefix=$(echo "$IMAGE_PREFIX" | tr '[:upper:]' '[:lower:]')
             version="${TAG#v}"
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             export API_IMAGE="$prefix-api:$version" WEB_IMAGE="$prefix-web:$version"
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            # Pick up Caddyfile changes without dropping connections.
+            docker compose -f docker-compose.prod.yml exec -T caddy caddy reload --config /etc/caddy/Caddyfile
             docker image prune -f
             for i in $(seq 1 30); do
               if curl -fsS http://127.0.0.1:4000/health/ready >/dev/null; then echo "API healthy"; exit 0; fi

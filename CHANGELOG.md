@@ -7,6 +7,11 @@ notes when the matching `vx.y.z` tag is pushed.
 
 ## [Unreleased]
 
+### Added
+
+- VPS deployment kit in `deploy/`: Caddy reverse proxy with automatic HTTPS, production `.env`
+  template, one-time server setup script, nightly database backups and a step-by-step guide.
+
 ### Changed
 
 - Repository renamed from `Jain-distributor-web` to `Jain-distributor`. Published images are now

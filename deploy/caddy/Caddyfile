@@ -1,0 +1,43 @@
+# Reverse proxy with automatic HTTPS (Let's Encrypt) for the whole app on one domain:
+#   https://$DOMAIN/api/*     -> API (Express)
+#   https://$DOMAIN/health*   -> API health checks
+#   https://$DOMAIN/*         -> web (Next.js)
+# DOMAIN and ACME_EMAIL come from the .env file next to docker-compose.prod.yml.
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# Voice recordings are uploaded to the API; keep a little headroom over MAX_AUDIO_MB.
+	request_body {
+		max_size 20MB
+	}
+
+	@api path /api/* /health /health/*
+	handle @api {
+		reverse_proxy api:4000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
+
+# Redirect www to the bare domain (only takes effect if DNS for www points here).
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}

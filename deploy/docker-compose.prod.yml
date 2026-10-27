@@ -1,7 +1,8 @@
 # Production stack on a single Linux server (VPS) using the images published by CI to GHCR.
-# The deploy job copies this file to $DEPLOY_PATH on the server next to a .env file and runs:
+# Lives in $DEPLOY_PATH (default /opt/jain-distributor) next to caddy/Caddyfile and .env (see .env.production.example).
+# The release workflow copies this file, caddy/Caddyfile and backup-db.sh to the server and runs:
 #   docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d
-# Put a TLS reverse proxy (Caddy / Nginx / Traefik) in front of ports 3000 and 4000.
+# Only Caddy is reachable from outside (ports 80/443); it terminates HTTPS and routes to web and api.
 name: jain-distributor
 
 services:
@@ -19,6 +20,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   api:
     image: ${API_IMAGE:?Set API_IMAGE}
@@ -33,22 +39,48 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-jain}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-jain_distributor}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://${DOMAIN}}
       ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}
+      ADMIN_NAME: ${ADMIN_NAME:-प्रशासक}
       STT_PROVIDER: ${STT_PROVIDER:-google}
       STT_LANGUAGE: ${STT_LANGUAGE:-mr-IN}
       GOOGLE_SPEECH_API_KEY: ${GOOGLE_SPEECH_API_KEY:-}
+      MAX_AUDIO_MB: ${MAX_AUDIO_MB:-10}
+      BUSINESS_TZ_OFFSET_MINUTES: ${BUSINESS_TZ_OFFSET_MINUTES:-330}
+    # Loopback only: used by the deploy health check, not reachable from the internet.
     ports:
       - "127.0.0.1:4000:4000"
+    logging: *logging
 
   web:
     image: ${WEB_IMAGE:?Set WEB_IMAGE}
     restart: always
     depends_on:
       - api
+    logging: *logging
+
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    depends_on:
+      - web
+      - api
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL}
     ports:
-      - "127.0.0.1:3000:3000"
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      # Directory mount so a redeployed Caddyfile is picked up by `caddy reload`.
+      - ./caddy:/etc/caddy:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging: *logging
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
