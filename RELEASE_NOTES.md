@@ -76,8 +76,8 @@ The API documentation is in [`backend/README.md`](backend/README.md).
    and put a `.env` with the production values in `DEPLOY_PATH` on the server. Approvals can be
    added through the `production` environment protection rules.
 
-Set the repository variable `NEXT_PUBLIC_API_URL` to the public API address
-(e.g. `https://api.jaindistributor.in/api/v1`) so the web image is built against it.
+Published web images call `https://jaindistributor.in/api/v1`. Override it with the repository
+variable `NEXT_PUBLIC_API_URL` if the API moves.
 
 ## Known limitations
 

@@ -11,6 +11,8 @@ notes when the matching `vx.y.z` tag is pushed.
 
 - VPS deployment kit in `deploy/`: Caddy reverse proxy with automatic HTTPS, production `.env`
   template, one-time server setup script, nightly database backups and a step-by-step guide.
+- Production domain set to `jaindistributor.in` (`www.` redirects): published web images call
+  `https://jaindistributor.in/api/v1`, and the API allows both https origins by default.
 
 ### Changed
 

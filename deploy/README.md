@@ -24,12 +24,23 @@ Only ports 22, 80 and 443 are open. The app, API and database are never exposed 
 * Ubuntu 22.04 / 24.04 or Debian 12, 64-bit.
 * 2 vCPU / 2 GB RAM is enough to start (the setup script adds swap below 3 GB); 20 GB disk.
 * Any provider works (Hostinger, DigitalOcean, Hetzner, AWS Lightsail, …).
-* A domain or subdomain, e.g. `app.jaindistributor.in`.
+* The domain: production runs on **`jaindistributor.in`** (`www.` redirects to it).
 
 ## 2. DNS
 
-Create an **A record** for the domain (and optionally `www.`) pointing at the server's public IPv4.
-Caddy requests the Let's Encrypt certificate on first start, so DNS must resolve before step 4.
+On AWS EC2, attach an **Elastic IP** first: the default public IP changes when the instance stops.
+
+At the domain registrar, create two **A records** pointing at the server's public IPv4, and delete
+any other `A`/`AAAA`/parking records for them (a stale `AAAA` record breaks the certificate):
+
+| Name | Type | Value |
+| --- | --- | --- |
+| `@` | A | server IP |
+| `www` | A | server IP |
+
+Caddy requests the Let's Encrypt certificate on first start, so DNS must resolve before step 4
+(check on the server with `getent hosts jaindistributor.in`). Also allow inbound 80 and 443 in
+the cloud firewall (AWS: the instance's security group).
 
 ## 3. Prepare the server (once)
 
@@ -54,7 +65,7 @@ that already has a random `POSTGRES_PASSWORD` and `JWT_SECRET`, and schedules th
 
 Then edit `/opt/jain-distributor/.env` and fill in:
 
-* `DOMAIN` and `ACME_EMAIL`
+* `DOMAIN` (`jaindistributor.in`) and `ACME_EMAIL`
 * `ADMIN_EMAIL` / `ADMIN_PASSWORD` (first admin login)
 * `GOOGLE_SPEECH_API_KEY` (or `STT_PROVIDER=mock` for a demo)
 
@@ -65,7 +76,7 @@ In **GitHub → Settings → Secrets and variables → Actions** of the reposito
 | Kind | Name | Value |
 | --- | --- | --- |
 | Variable | `DEPLOY_ENABLED` | `true` |
-| Variable | `NEXT_PUBLIC_API_URL` | `https://<DOMAIN>/api/v1` (baked into the web image at build time) |
+| Variable | `NEXT_PUBLIC_API_URL` | optional; defaults to `https://jaindistributor.in/api/v1` (baked into the web image) |
 | Secret | `DEPLOY_HOST` | server IP or hostname |
 | Secret | `DEPLOY_USER` | `deploy` |
 | Secret | `DEPLOY_SSH_KEY` | contents of the **private** key `jain-deploy` |
@@ -101,10 +112,32 @@ docker compose -f docker-compose.prod.yml up -d
 
 `API_IMAGE` / `WEB_IMAGE` in `.env` pick the version (`:latest`, `:1.0.0`, …).
 
+### Building the images on the server instead
+
+No registry login needed. `/opt/jain-distributor` belongs to the `deploy` user, so work as root (`sudo -i`):
+
+```bash
+git clone https://github.com/Inveon-Technologies/Jain-distributor.git /home/ubuntu/app
+cd /home/ubuntu/app        # later: git pull
+JWT_SECRET=x ADMIN_PASSWORD=x NEXT_PUBLIC_API_URL=https://jaindistributor.in/api/v1 docker compose build
+```
+
+(The `x` values only satisfy the build; real secrets live in `/opt/jain-distributor/.env`.)
+Then set `API_IMAGE=jain-distributor-api:local` and `WEB_IMAGE=jain-distributor-web:local` in
+`.env` and run `docker compose -f docker-compose.prod.yml up -d` from `/opt/jain-distributor`.
+
+### Running on the bare IP before DNS is ready
+
+Set `DOMAIN=:80` and `CORS_ORIGINS=http://<server-ip>` in `.env`, build the web image with
+`NEXT_PUBLIC_API_URL=http://<server-ip>/api/v1`, and delete the `www.{$DOMAIN}` block at the end of
+`caddy/Caddyfile`. The app is then served over plain HTTP on port 80. To switch to the domain, set
+`DOMAIN=jaindistributor.in`, remove `CORS_ORIGINS` (or list both https origins), restore the Caddyfile
+from the repo, rebuild the web image with the https API URL and run `up -d` again.
+
 ## 6. Check it works
 
 ```bash
-curl -fsS https://<DOMAIN>/health/ready      # {"status":"ready","database":"up"}
+curl -fsS https://jaindistributor.in/health/ready      # {"status":"ready","database":"up"}
 docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs -f --tail=100 api
 ```
