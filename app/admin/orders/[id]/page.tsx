@@ -514,38 +514,6 @@ export default function OrderDetailsPage() {
           </table>
         </div>
 
-        {/* 3 Signatures and Seals */}
-        <div className="pt-8 mt-6 border-t border-slate-300">
-          <div className="grid grid-cols-3 gap-6 text-center text-xs">
-            <div className="border-t border-dashed border-slate-400 pt-2">
-              <span className="font-bold text-slate-800 block">
-                नोंदणीकर्ता सेल्समन सही
-              </span>
-              <span className="text-[10px] text-slate-500 block">
-                ({salesperson?.name || "सेल्समन"})
-              </span>
-            </div>
-
-            <div className="border-t border-dashed border-slate-400 pt-2">
-              <span className="font-bold text-slate-800 block">
-                गोडावून डिस्पॅच / तपासणी सही
-              </span>
-              <span className="text-[10px] text-slate-500 block">
-                (Storekeeper / Dispatcher)
-              </span>
-            </div>
-
-            <div className="border-t border-dashed border-slate-400 pt-2">
-              <span className="font-bold text-slate-800 block">
-                दुकानदार सही व शिक्का
-              </span>
-              <span className="text-[10px] text-slate-500 block">
-                ({shop?.owner || "ग्राहक / दुकानदार"})
-              </span>
-            </div>
-          </div>
-        </div>
-
         {/* Footer Note */}
         <div className="mt-8 pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400">
           <span>
