@@ -160,6 +160,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Menu className="w-6 h-6" />
             </button>
 
+            <div className="lg:hidden flex items-center">
+              <Logo size="sm" />
+            </div>
+
             <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-slate-500">
               <span className="text-slate-400">{t.brandName}</span>
               <ChevronRight className="w-3.5 h-3.5 text-slate-300" />

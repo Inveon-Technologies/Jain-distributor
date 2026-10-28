@@ -209,7 +209,10 @@ export default function LoginPage() {
           <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-9 shadow-[0_20px_50px_rgba(4,35,18,0.08)] border border-slate-200/80">
             {/* Login Card Header */}
             <div className="mb-6 text-center">
-              <div className="inline-flex p-3 rounded-2xl bg-emerald-50 text-brand-primary mb-3">
+              <div className="lg:hidden flex justify-center mb-4">
+                <Logo size="default" />
+              </div>
+              <div className="hidden lg:inline-flex p-3 rounded-2xl bg-emerald-50 text-brand-primary mb-3">
                 <ShieldCheck className="w-7 h-7" />
               </div>
               <h2 className="text-2xl font-black text-slate-900 tracking-tight">
