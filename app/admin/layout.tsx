@@ -73,7 +73,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Left Sidebar */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 sm:w-72 bg-white border-r border-slate-200/80 flex flex-col justify-between shrink-0 transition-transform duration-300 ease-in-out shadow-sm ${
+        className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 sm:w-72 bg-white border-r border-slate-200/80 flex flex-col justify-between shrink-0 transition-transform duration-300 ease-in-out shadow-sm print:hidden ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -148,9 +148,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#e8eee9]">
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#e8eee9] print:bg-white print:min-h-0">
         {/* Top Header */}
-        <header className="h-16 sm:h-20 bg-white border-b border-slate-200/80 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+        <header className="h-16 sm:h-20 bg-white border-b border-slate-200/80 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-xs print:hidden">
           {/* Left: Mobile hamburger + breadcrumb */}
           <div className="flex items-center gap-3">
             <button
@@ -214,7 +214,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Child Pages Viewport */}
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
+        <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none print:w-full print:space-y-0">
           {children}
         </main>
       </div>
