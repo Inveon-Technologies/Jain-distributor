@@ -24,11 +24,16 @@ export function Logo({
   const dims = {
     sm: isIcon ? { w: 58, h: 32 } : { w: 42, h: 38 },
     default: isIcon ? { w: 80, h: 44 } : { w: 62, h: 56 },
-    lg: isIcon ? { w: 120, h: 66 } : { w: 98, h: 88 },
-    xl: isIcon ? { w: 160, h: 88 } : { w: 130, h: 120 },
+    lg: isIcon ? { w: 105, h: 58 } : { w: 80, h: 74 },
+    xl: isIcon ? { w: 140, h: 78 } : { w: 110, h: 102 },
   }[size] || { w: 62, h: 56 };
 
-  const src = isIcon ? "/images/logo-icon.png" : "/images/logo-transparent.png";
+  // When light=true (e.g. for dark green hero backgrounds), use transparent white & gold version
+  const src = isIcon
+    ? "/images/logo-icon.png"
+    : light
+    ? "/images/logo-white-gold.png"
+    : "/images/logo-transparent.png";
 
   const imageElement = (
     <Image
@@ -40,16 +45,6 @@ export function Logo({
       className="h-auto w-auto object-contain max-h-full"
     />
   );
-
-  if (light) {
-    return (
-      <div
-        className={`inline-flex items-center bg-white px-3.5 py-2 rounded-2xl shadow-md border border-white/30 select-none ${className}`}
-      >
-        {imageElement}
-      </div>
-    );
-  }
 
   return (
     <div className={`inline-flex items-center select-none ${className}`}>
