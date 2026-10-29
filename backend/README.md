@@ -108,7 +108,7 @@ Dates in query strings are `YYYY-MM-DD` in business time (IST).
 | --- | --- | --- | --- |
 | GET | `/voice/config` | any | `{ provider, language }`: `browser` means the app recognises speech on the phone and only calls `/voice/parse`. |
 | POST | `/voice/transcribe` | any | `multipart/form-data` with `audio` (webm/opus, ogg, wav, flac, mp3) and optional `sampleRate`. Returns `{ text, confidence, needsReview, lowConfidenceWords, provider, language, items, unparsed, summary }`. `needsReview` is true when confidence is under `STT_MIN_CONFIDENCE`, a word was unsure or a part of the order could not be read. 422 `NO_SPEECH` when nothing was recognised. |
-| POST | `/voice/parse` | any | `{ text }` → `{ items, unparsed, summary }` after the transcript is edited. |
+| POST | `/voice/parse` | any | `{ text }` → `{ items, unparsed, formattedText, summary }` after the transcript is edited. `formattedText` is one item per line with digit quantities ("रवा 1 किलो"). |
 
 Items look like `{ "name": "रवा", "nameEn": "Rava", "quantity": 10, "unit": "किलो (kg)", "unitCode": "KG" }`.
 

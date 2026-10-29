@@ -19,6 +19,8 @@ export interface TranscribeResult {
   items: TranscribeItem[];
   unparsed: string[];
   summary: string;
+  /** One item per line with digit quantities ("रवा 1 किलो"), shown in the editable box. */
+  formattedText?: string;
 }
 
 export class TranscribeError extends Error {

@@ -23,6 +23,10 @@ notes when the matching `vx.y.z` tag is pushed.
 
 ### Added
 
+- Spoken orders are rewritten as one item per line with digit quantities ("रवा 1 किलो") right
+  after recording, without punctuation. Run-on speech is split into separate items more reliably,
+  repeated words ("शेंगदाणा शेंगदाणे") are collapsed, "पावशेर" reads as 250 g and "जुडी" (bunch) is a
+  unit. Vegetables such as कांदा, लसूण, आले and कोथिंबीर are recognised products.
 - More speech-to-text choices via `STT_PROVIDER`: `browser` recognises Marathi on the phone itself
   (Chrome/Edge, free, no key, text appears while speaking) and `elevenlabs` uses ElevenLabs Scribe
   with kirana keyterms. `GET /voice/config` tells the app which one is active. Production now
