@@ -9,6 +9,10 @@ async function main() {
   await migrate();
   await ensureAdmin();
 
+  if (config.NODE_ENV === "production" && config.STT_PROVIDER !== "google") {
+    logger.warn("STT_PROVIDER is not google: voice orders will fail until GOOGLE_SPEECH_API_KEY is configured");
+  }
+
   const server = createApp().listen(config.PORT, () => {
     logger.info({ port: config.PORT, env: config.NODE_ENV, stt: config.STT_PROVIDER }, "Jain Distributor API listening");
   });

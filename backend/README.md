@@ -37,7 +37,7 @@ All settings come from environment variables and are validated on start (see `.e
 | `JWT_EXPIRES_IN` | `7d` | Field staff stay signed in for a week. |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma separated; `*` allows any origin. |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | – | First admin, created only when no admin exists. |
-| `STT_PROVIDER` | `mock` | `google` or `mock`. |
+| `STT_PROVIDER` | `mock` | `google` or `mock`. `mock` returns `MOCK_TRANSCRIPT` in development only. In production it makes `/voice/transcribe` answer 503 `STT_NOT_CONFIGURED` instead of a fake order. |
 | `GOOGLE_SPEECH_API_KEY` | – | Required for `google`. Restrict the key to the Speech-to-Text API. |
 | `STT_LANGUAGE` | `mr-IN` | Recognition language. |
 | `STT_MODEL` | `latest_long` | Google model. Falls back to the default model automatically if Google rejects it. |

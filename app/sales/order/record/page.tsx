@@ -39,6 +39,10 @@ const ERRORS: Record<string, { mr: string; en: string }> = {
     mr: "आवाज ऐकू आला नाही. फोन तोंडाजवळ धरा आणि पुन्हा स्पष्ट बोला.",
     en: "No speech was heard. Hold the phone closer and speak again clearly.",
   },
+  STT_NOT_CONFIGURED: {
+    mr: "व्हॉईस ओळख सर्व्हरवर अजून सुरू केलेली नाही. तोपर्यंत ऑर्डर खाली टाइप करा.",
+    en: "Voice recognition is not set up on the server yet. Please type the order below for now.",
+  },
   STT_FAILED: {
     mr: "व्हॉईस सेवा आत्ता उपलब्ध नाही. पुन्हा प्रयत्न करा किंवा ऑर्डर टाइप करा.",
     en: "Speech service is unavailable right now. Try again or type the order.",
@@ -97,7 +101,8 @@ function RecordOrderContent() {
       setTranscribedText(data.text);
     } catch (err) {
       if (err instanceof RecorderError) setErrorCode(err.code);
-      else if (err instanceof TranscribeError && err.code === "NO_SPEECH") setErrorCode("NO_SPEECH");
+      else if (err instanceof TranscribeError && (err.code === "NO_SPEECH" || err.code === "STT_NOT_CONFIGURED"))
+        setErrorCode(err.code);
       else setErrorCode("STT_FAILED");
     } finally {
       setIsProcessing(false);
@@ -276,7 +281,12 @@ function RecordOrderContent() {
               <Sparkles className="w-3.5 h-3.5 text-brand-primary" />
               <span>{t.transcribedSpeechText}</span>
             </span>
-            {result?.confidence != null && (
+            {result?.provider === "mock" && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] text-slate-600 bg-slate-100">
+                {language === "mr" ? "चाचणी मजकूर (खरी ओळख नाही)" : "Test text (not real recognition)"}
+              </span>
+            )}
+            {result?.confidence != null && result.provider !== "mock" && (
               <span
                 className={`px-2 py-0.5 rounded-md text-[10px] ${
                   result.needsReview ? "text-amber-700 bg-amber-50" : "text-emerald-700 bg-emerald-50"

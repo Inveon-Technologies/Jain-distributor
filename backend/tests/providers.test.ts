@@ -126,3 +126,13 @@ describe("pickAlternative", () => {
     expect(best?.transcript).toBe("दहा किलो रवा");
   });
 });
+
+describe("UnconfiguredSpeechProvider", () => {
+  it("fails with 503 instead of inventing a transcript", async () => {
+    const { UnconfiguredSpeechProvider } = await import("../src/modules/voice/providers.js");
+    await expect(new UnconfiguredSpeechProvider().transcribe()).rejects.toMatchObject({
+      status: 503,
+      code: "STT_NOT_CONFIGURED",
+    });
+  });
+});
