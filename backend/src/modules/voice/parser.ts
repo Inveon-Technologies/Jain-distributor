@@ -30,6 +30,7 @@ export const UNITS: UnitDef[] = [
   { code: "BOTTLE", mr: "बाटली", en: "Bottle", aliases: ["बाटली", "बाटल्या", "bottle", "bottles"] },
   { code: "CARTON", mr: "कार्टन", en: "Carton", aliases: ["कार्टन", "carton", "cartons"] },
   { code: "PACK", mr: "पुडा", en: "Pack", aliases: ["पुडा", "पुडे", "पुड्या", "pack", "packs"] },
+  { code: "BUNCH", mr: "जुडी", en: "Bunch", aliases: ["जुडी", "जुड्या", "जुडया", "गड्डी", "गड्ड्या", "bunch", "bunches"] },
 ];
 
 const UNIT_BY_ALIAS = new Map<string, UnitDef>();
@@ -45,6 +46,9 @@ export const PRODUCT_EN: Record<string, string> = {
   "पार्ले बिस्कीट": "Parle Biscuit", "डाबर टूथपेस्ट": "Dabur Toothpaste", हळद: "Turmeric", मिरची: "Chilli",
   "लाल मिरची": "Red Chilli", जिरे: "Cumin", मोहरी: "Mustard Seeds", शाम्पू: "Shampoo", "वॉशिंग पावडर": "Washing Powder",
   अगरबत्ती: "Agarbatti", काडेपेटी: "Matchbox", साबुदाणा: "Sabudana",
+  पिठीसाखर: "Powdered Sugar", खोबरं: "Dry Coconut", खोबरे: "Dry Coconut", कांदा: "Onion", कांदे: "Onion",
+  लसूण: "Garlic", आले: "Ginger", आलं: "Ginger", कोथिंबीर: "Coriander", बटाटा: "Potato", बटाटे: "Potato",
+  "हिरवी मिरची": "Green Chilli", शेंगदाणा: "Groundnuts", पोहा: "Poha"
 };
 
 /** Words that carry no product information ("द्या" = give, "पाहिजे" = need, ...). */
@@ -72,8 +76,21 @@ function cleanToken(token: string): string {
   return token.replace(/^[("'“”‘’]+|[)"'“”‘’!?:]+$/g, "");
 }
 
-/** Splits "10kg" / "१०किलो" into ["10", "kg"]. */
+/**
+ * Traditional measures spoken as one word, expanded to quantity + unit tokens:
+ * "पावशेर" (a quarter sher) is sold as 250 g, "अच्छेर"/"अर्धाशेर" as 500 g.
+ */
+const MEASURE_WORDS: Record<string, string[]> = {
+  पावशेर: ["250", "ग्रॅम"],
+  पावशेर्: ["250", "ग्रॅम"],
+  पावशेरी: ["250", "ग्रॅम"],
+  अच्छेर: ["500", "ग्रॅम"],
+  अर्धाशेर: ["500", "ग्रॅम"],
+};
+
+/** Splits "10kg" / "१०किलो" into ["10", "kg"] and expands measure words like "पावशेर". */
 function splitNumberUnit(token: string): string[] {
+  if (MEASURE_WORDS[token]) return MEASURE_WORDS[token];
   const m = normalizeDigits(token).match(/^(\d+(?:\.\d+)?)(\D+)$/);
   return m && UNIT_BY_ALIAS.has(m[2].toLowerCase()) ? [m[1], m[2]] : [token];
 }
@@ -103,28 +120,54 @@ function segmentsOf(text: string): string[][] {
 
 /**
  * A segment can hold more than one item when the speaker drops separators
- * ("दहा किलो रवा पाच किलो साखर"); split it before each quantity that follows a product word.
+ * ("दहा किलो रवा पाच किलो साखर"); split it before each quantity that follows a product word, or
+ * that follows a complete quantity + unit with no product ("पावशेर चार जुडी कोथिंबीर").
  */
 function splitRunOn(tokens: string[]): string[][] {
   const parts: string[][] = [];
   let current: string[] = [];
   let sawProduct = false;
   let sawQuantity = false;
+  let sawUnit = false;
   for (let i = 0; i < tokens.length; i++) {
     const tok = tokens[i];
     const isQty = isNumberToken(tok);
-    if (isQty && sawProduct && sawQuantity && !isNumberToken(tokens[i - 1] ?? "")) {
+    if (isQty && sawQuantity && (sawProduct || sawUnit) && !isNumberToken(tokens[i - 1] ?? "")) {
       parts.push(current);
       current = [];
       sawProduct = false;
       sawQuantity = false;
+      sawUnit = false;
     }
     current.push(tok);
     if (isQty) sawQuantity = true;
-    else if (!UNIT_BY_ALIAS.has(tok.toLowerCase()) && !FILLERS.has(tok.toLowerCase())) sawProduct = true;
+    else if (UNIT_BY_ALIAS.has(tok.toLowerCase())) sawUnit = true;
+    else if (!FILLERS.has(tok.toLowerCase())) sawProduct = true;
   }
   if (current.length) parts.push(current);
   return parts;
+}
+
+/** Drops trailing vowel signs so "शेंगदाणा" / "शेंगदाणे" / "शेंगदाण्या" compare equal. */
+function stem(word: string): string {
+  return word.replace(/[\u093E-\u094D\u0902\u0903]+$/u, "").replace(/्य$/u, "");
+}
+
+/**
+ * Speakers often repeat or correct a word ("शेंगदाणा शेंगदाणे"); recognisers keep both. Collapse
+ * neighbouring words with the same stem, keeping the one the product list knows.
+ */
+function dedupeRepeats(tokens: string[]): string[] {
+  const out: string[] = [];
+  for (const tok of tokens) {
+    const prev = out.at(-1);
+    if (prev !== undefined && stem(prev) === stem(tok)) {
+      if (!PRODUCT_EN[prev] && PRODUCT_EN[tok]) out[out.length - 1] = tok;
+      continue;
+    }
+    out.push(tok);
+  }
+  return out;
 }
 
 function englishName(name: string): string | undefined {
@@ -158,7 +201,7 @@ function parseSegment(tokens: string[]): OrderItem | undefined {
     nameTokens.push(tok);
   }
 
-  const name = nameTokens.join(" ").trim();
+  const name = dedupeRepeats(nameTokens).join(" ").trim();
   if (quantity === undefined || quantity <= 0 || !name) return undefined;
   const resolved = unit ?? UNITS.find((u) => u.code === "PIECE")!;
   return {
@@ -181,6 +224,16 @@ export function parseOrderText(text: string): ParseResult {
     }
   }
   return { items, unparsed };
+}
+
+/**
+ * The order as the salesperson sees it after speaking: one item per line with the quantity in
+ * digits ("रवा 1 किलो"), then any part that could not be read so it can be fixed by hand. The text
+ * parses back to the same items.
+ */
+export function formatOrderText(result: ParseResult): string {
+  const lines = result.items.map((i) => `${i.name} ${i.quantity} ${i.unit.split(" (")[0]}`);
+  return [...lines, ...result.unparsed].join("\n");
 }
 
 /** "रवा – 10 किलो | Parle Biscuit – 20 Packet" style one-line summary (PRD §5). */

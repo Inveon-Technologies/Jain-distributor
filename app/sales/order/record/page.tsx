@@ -135,17 +135,23 @@ function RecordOrderContent() {
         setErrorCode("NO_SPEECH");
         return;
       }
-      setTranscribedText(text);
+      // Turn the spoken words into one item per line with numeric quantities.
+      const parsed = await apiFetch<{ data: Pick<TranscribeResult, "items" | "unparsed" | "summary" | "formattedText"> }>(
+        "/voice/parse",
+        { method: "POST", body: { text } },
+      )
+        .then((r) => r.data)
+        .catch(() => ({ items: [], unparsed: [], summary: "", formattedText: undefined }));
+      setTranscribedText(parsed.formattedText || text);
       setResult({
         text,
         confidence,
-        needsReview: confidence !== null && confidence < REVIEW_CONFIDENCE,
+        needsReview:
+          (confidence !== null && confidence < REVIEW_CONFIDENCE) || parsed.unparsed.length > 0 || parsed.items.length === 0,
         lowConfidenceWords: [],
         provider: "browser",
         language: sttLanguage,
-        items: [],
-        unparsed: [],
-        summary: "",
+        ...parsed,
       });
     } catch (err) {
       setErrorCode(err instanceof BrowserSpeechError ? err.code : "STT_FAILED");
@@ -166,7 +172,7 @@ function RecordOrderContent() {
       const recording = await recorder.stop();
       const data = await transcribeRecording(recording);
       setResult(data);
-      setTranscribedText(data.text);
+      setTranscribedText(data.formattedText || data.text);
     } catch (err) {
       if (err instanceof RecorderError) setErrorCode(err.code);
       else if (err instanceof TranscribeError && (err.code === "NO_SPEECH" || err.code === "STT_NOT_CONFIGURED"))
@@ -383,7 +389,7 @@ function RecordOrderContent() {
             onChange={(e) => setTranscribedText(e.target.value)}
             disabled={isRecording || isProcessing}
             placeholder={t.orderTextPlaceholder}
-            rows={4}
+            rows={7}
             lang="mr"
             className={`w-full min-h-[100px] p-4 rounded-2xl border text-sm sm:text-base font-semibold transition leading-relaxed resize-y outline-none focus:ring-2 focus:ring-emerald-200 ${
               transcribedText

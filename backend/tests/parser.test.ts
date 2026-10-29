@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readQuantity } from "../src/modules/voice/numbers.js";
-import { parseOrderText, summarizeItems } from "../src/modules/voice/parser.js";
+import { formatOrderText, parseOrderText, summarizeItems } from "../src/modules/voice/parser.js";
 
 const pick = (text: string) => parseOrderText(text).items.map((i) => [i.name, i.quantity, i.unitCode]);
 
@@ -99,5 +99,39 @@ describe("readQuantity", () => {
 
   it("returns undefined for non-numbers", () => {
     expect(readQuantity(["रवा"], 0)).toBeUndefined();
+  });
+});
+
+describe("spoken kirana orders without separators", () => {
+  const spoken =
+    "एक किलो रवा एक किलो पिठीसाखर दोन किलो खोबरं चार किलो कांदे लसूण पाच किलो शेंगदाणा शेंगदाणे तीन किलो आले पावशेर चार जुडी कोथिंबीर";
+
+  it("splits every item with a numeric quantity", () => {
+    const { items, unparsed } = parseOrderText(spoken);
+    expect(items.map((i) => [i.name, i.quantity, i.unitCode])).toEqual([
+      ["रवा", 1, "KG"],
+      ["पिठीसाखर", 1, "KG"],
+      ["खोबरं", 2, "KG"],
+      ["कांदे लसूण", 4, "KG"],
+      ["शेंगदाणा", 5, "KG"],
+      ["आले", 3, "KG"],
+      ["कोथिंबीर", 4, "BUNCH"],
+    ]);
+    // A quantity with no product is kept for the salesperson to fix.
+    expect(unparsed).toEqual(["250 ग्रॅम"]);
+  });
+
+  it("reads पावशेर as 250 g", () => {
+    expect(parseOrderText("आले पावशेर").items).toEqual([
+      { name: "आले", nameEn: "Ginger", quantity: 250, unit: "ग्रॅम (g)", unitCode: "GRAM" },
+    ]);
+  });
+
+  it("formats one item per line with digits, and the text parses back to the same items", () => {
+    const parsed = parseOrderText(spoken);
+    const text = formatOrderText(parsed);
+    expect(text.split("\n").slice(0, 2)).toEqual(["रवा 1 किलो", "पिठीसाखर 1 किलो"]);
+    expect(text).not.toMatch(/[,.।]/);
+    expect(parseOrderText(text).items).toEqual(parsed.items);
   });
 });

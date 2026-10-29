@@ -5,7 +5,7 @@ import { config } from "../../config.js";
 import { badRequest, HttpError } from "../../lib/errors.js";
 import { parse } from "../../lib/validate.js";
 import { authenticate } from "../../middleware/auth.js";
-import { parseOrderText, summarizeItems } from "./parser.js";
+import { formatOrderText, parseOrderText, summarizeItems } from "./parser.js";
 import { activeSpeechProvider, createSpeechProvider, type SpeechProvider } from "./providers.js";
 
 const upload = multer({
@@ -53,6 +53,7 @@ export function createVoiceRouter(provider: SpeechProvider = createSpeechProvide
         provider: result.provider,
         language: config.STT_LANGUAGE,
         ...parsed,
+        formattedText: formatOrderText(parsed),
         summary: summarizeItems(parsed.items),
       },
     });
@@ -62,7 +63,7 @@ export function createVoiceRouter(provider: SpeechProvider = createSpeechProvide
   router.post("/parse", (req, res) => {
     const { text } = parse(z.object({ text: z.string().trim().min(1).max(5000) }), req.body);
     const parsed = parseOrderText(text);
-    res.json({ data: { text, ...parsed, summary: summarizeItems(parsed.items) } });
+    res.json({ data: { text, ...parsed, formattedText: formatOrderText(parsed), summary: summarizeItems(parsed.items) } });
   });
 
   return router;
