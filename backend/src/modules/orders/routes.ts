@@ -40,6 +40,7 @@ const updateBody = z
   .refine((b) => Object.keys(b).length > 0, "Provide at least one field to update");
 
 const listQuery = pagination.extend({
+  pageSize: z.coerce.number().int().min(1).max(500).default(25),
   date: isoDate.optional(),
   from: isoDate.optional(),
   to: isoDate.optional(),

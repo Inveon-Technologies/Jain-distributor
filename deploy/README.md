@@ -142,10 +142,12 @@ docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs -f --tail=100 api
 ```
 
-Optional demo data (do **not** run on a live database with real orders):
+The app starts empty apart from the admin account. To clear villages, shops, salespersons and
+orders left over from the old demo seed (keeps admins; take a backup first, it is irreversible):
 
 ```bash
-docker compose -f docker-compose.prod.yml exec api node dist/db/seed.js
+docker compose -f docker-compose.prod.yml exec -T db \
+  sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < clear-demo-data.sql
 ```
 
 ## Operations

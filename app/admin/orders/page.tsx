@@ -24,7 +24,7 @@ export default function AdminOrdersPage() {
   const filteredOrders = orders.filter((order) => {
     const shop = shops.find((s) => s.id === order.shopId);
     const matchesSearch =
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.displayId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       shop?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.transcribedText.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -114,7 +114,7 @@ export default function AdminOrdersPage() {
                 return (
                   <tr key={order.id} className="hover:bg-slate-50/70 transition">
                     <td className="py-3.5 px-4 font-mono font-bold text-brand-dark">
-                      {order.id}
+                      {order.displayId}
                       <span className="block text-[10px] text-slate-400 font-normal">
                         {order.createdAt}
                       </span>

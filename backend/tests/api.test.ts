@@ -213,8 +213,12 @@ describe("shops", () => {
     expect(page.body.meta).toEqual({ page: 2, pageSize: 1, total: 2, totalPages: 2 });
   });
 
-  it("only admins edit or delete shops", async () => {
-    expect((await api().patch(`/api/v1/shops/${shopId}`).set(auth(sales)).send({ name: "x" })).status).toBe(403);
+  it("salespersons edit shop details but only admins set the balance or delete", async () => {
+    const edited = await api().patch(`/api/v1/shops/${shopId}`).set(auth(sales)).send({ mobile: "+91 90000 11111", outstandingBalance: 99 });
+    expect(edited.status).toBe(200);
+    expect(edited.body.data.mobile).toBe("+91 90000 11111");
+    expect(edited.body.data.outstandingBalance).not.toBe(99);
+    expect((await api().delete(`/api/v1/shops/${shopId}`).set(auth(sales))).status).toBe(403);
     const res = await api().patch(`/api/v1/shops/${shopId}`).set(auth(admin)).send({ outstandingBalance: 1200.5 });
     expect(res.body.data.outstandingBalance).toBe(1200.5);
   });

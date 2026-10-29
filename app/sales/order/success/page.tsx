@@ -43,7 +43,7 @@ function OrderSuccessContent() {
               {t.orderIdLabel}
             </span>
             <span className="text-xl font-extrabold text-brand-primary font-mono">
-              {currentOrder?.id}
+              {currentOrder?.displayId}
             </span>
           </div>
 
@@ -83,7 +83,7 @@ function OrderSuccessContent() {
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
         <button
           type="button"
-          onClick={() => router.push(`/sales/shops?village=${selectedVillage?.id || "v-1"}`)}
+          onClick={() => router.push(`/sales/shops?village=${selectedVillage?.id || ""}`)}
           className="flex-1 py-3.5 px-4 rounded-2xl bg-brand-primary hover:bg-brand-deep text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-brand-primary/20 transition"
         >
           <Store className="w-5 h-5" />

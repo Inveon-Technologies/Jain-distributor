@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
+import { apiFetch } from "@/lib/api";
 import { translations } from "@/data/translations";
 import { autoBilingualName } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
@@ -16,6 +17,12 @@ import {
   Clock,
   ExternalLink,
 } from "lucide-react";
+
+interface DashboardSummary {
+  villageVisitsToday: number;
+  shopsVisitedToday: number;
+  ordersToday: number;
+}
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -31,24 +38,36 @@ export default function AdminDashboardPage() {
     return t.greetingNight;
   };
 
+  // Today's KPI counts come from the API; refetched whenever the order list changes.
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  useEffect(() => {
+    apiFetch<{ data: DashboardSummary }>("/dashboard/summary")
+      .then(({ data }) => setSummary(data))
+      .catch(() => setSummary(null));
+  }, [orders]);
+
   // Modal state for adding a village
   const [isAddVillageOpen, setIsAddVillageOpen] = useState(false);
   const [vName, setVName] = useState("");
   const [vTaluka, setVTaluka] = useState("");
 
-  const handleAddVillage = (e: React.FormEvent) => {
+  const handleAddVillage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!vName.trim()) return;
 
     const vPair = autoBilingualName(vName);
-    const talukaPair = autoBilingualName(vTaluka || (language === "mr" ? "पंढरपूर" : "Pandharpur"));
+    const talukaPair = vTaluka.trim() ? autoBilingualName(vTaluka) : { mr: "", en: "" };
 
-    addVillage({
-      marathiName: vPair.mr,
-      englishName: vPair.en,
-      taluka: language === "mr" ? talukaPair.mr : talukaPair.en,
-      district: language === "mr" ? "सोलापूर" : "Solapur",
-    });
+    try {
+      await addVillage({
+        marathiName: vPair.mr,
+        englishName: vPair.en,
+        taluka: language === "mr" ? talukaPair.mr : talukaPair.en,
+        district: language === "mr" ? "सोलापूर" : "Solapur",
+      });
+    } catch {
+      return;
+    }
     setVName("");
     setVTaluka("");
     setIsAddVillageOpen(false);
@@ -98,7 +117,7 @@ export default function AdminDashboardPage() {
               {t.kpiVillageVisits}
             </span>
             <span className="text-2xl sm:text-3xl font-black text-amber-700 mt-0.5 block">
-              28
+              {summary?.villageVisitsToday ?? "–"}
             </span>
           </div>
         </div>
@@ -113,7 +132,7 @@ export default function AdminDashboardPage() {
               {t.kpiShopsVisited}
             </span>
             <span className="text-2xl sm:text-3xl font-black text-blue-700 mt-0.5 block">
-              65
+              {summary?.shopsVisitedToday ?? "–"}
             </span>
           </div>
         </div>
@@ -128,7 +147,7 @@ export default function AdminDashboardPage() {
               {t.kpiOrdersRecorded}
             </span>
             <span className="text-2xl sm:text-3xl font-black text-brand-primary mt-0.5 block">
-              {orders.length}
+              {summary?.ordersToday ?? "–"}
             </span>
           </div>
         </div>
@@ -306,7 +325,7 @@ export default function AdminDashboardPage() {
             >
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs font-bold text-brand-primary">
-                  {order.id}
+                  {order.displayId}
                 </span>
                 <span className="text-[11px] text-slate-400 flex items-center gap-1">
                   <Clock className="w-3 h-3" />

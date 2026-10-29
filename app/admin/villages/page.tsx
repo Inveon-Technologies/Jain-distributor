@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { autoBilingualName } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
-import { Village } from "@/data/mockData";
+import { Village } from "@/data/types";
 import { MapPin, Plus, X, Check, Trash2, Pencil } from "lucide-react";
 
 export default function AdminVillagesPage() {
@@ -46,19 +46,23 @@ export default function AdminVillagesPage() {
     setVillageToEdit(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!villageName.trim()) return;
 
     const vPair = autoBilingualName(villageName);
-    const talukaPair = autoBilingualName(taluka || (language === "mr" ? "पंढरपूर" : "Pandharpur"));
+    const talukaPair = taluka.trim() ? autoBilingualName(taluka) : { mr: "", en: "" };
 
-    addVillage({
-      marathiName: vPair.mr,
-      englishName: vPair.en,
-      taluka: language === "mr" ? talukaPair.mr : talukaPair.en,
-      district: language === "mr" ? "सोलापूर" : "Solapur",
-    });
+    try {
+      await addVillage({
+        marathiName: vPair.mr,
+        englishName: vPair.en,
+        taluka: language === "mr" ? talukaPair.mr : talukaPair.en,
+        district: language === "mr" ? "सोलापूर" : "Solapur",
+      });
+    } catch {
+      return;
+    }
 
     setVillageName("");
     setTaluka("");

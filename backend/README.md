@@ -9,7 +9,7 @@ Node.js 22, Express 5, TypeScript, PostgreSQL 16.
 cd backend
 cp .env.example .env            # point DATABASE_URL at a PostgreSQL database
 npm install
-npm run seed                    # migrations + bootstrap admin + demo data (optional)
+npm run migrate                 # apply SQL migrations
 npm run dev                     # http://localhost:4000
 ```
 
@@ -20,12 +20,11 @@ Or run the whole stack from the repository root with `docker compose up -d --bui
 | `npm run dev` | Start with reload (tsx) |
 | `npm run build` / `npm start` | Compile to `dist/` and run |
 | `npm run migrate` | Apply pending SQL migrations (also runs on every start) |
-| `npm run seed` | Demo villages, shops, salespersons and orders (skipped if villages exist) |
 | `npm run lint` / `npm run typecheck` | ESLint / TypeScript |
 | `npm test` | Unit and API tests. Needs PostgreSQL: set `TEST_DATABASE_URL` (default `postgres://jain:jain@localhost:5432/jain_test`). **The test database is wiped.** |
 
-Demo accounts after seeding: `admin@jain.com` / value of `ADMIN_PASSWORD`, and
-`amol@jain.com`, `santosh@jain.com` / `sales123` (`rahul@jain.com` is inactive).
+There is no demo data. On first start the API creates the admin account from `ADMIN_EMAIL` /
+`ADMIN_PASSWORD`; the admin then adds villages, shops and salespersons from the web app.
 
 ## Configuration
 
@@ -144,7 +143,7 @@ backend/
     app.ts             Express app (routes, middleware)
     index.ts           Server start: migrate → bootstrap admin → listen
     config.ts          Validated environment
-    db/                Pool, migration runner, bootstrap admin, demo seed
+    db/                Pool, migration runner, bootstrap admin
     middleware/        Auth (JWT + role checks), error handling
     modules/           auth, salespersons, villages, shops, orders, visits, dashboard, voice
   tests/               Vitest unit and API tests

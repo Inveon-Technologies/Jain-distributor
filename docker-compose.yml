@@ -1,7 +1,6 @@
 # Local / single-server stack: PostgreSQL + API + web.
 #   cp .env.example .env   # adjust secrets
 #   docker compose up -d --build
-#   docker compose exec api node dist/db/seed.js   # optional demo data
 name: jain-distributor
 
 services:

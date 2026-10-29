@@ -5,11 +5,11 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
-import { Salesperson } from "@/data/mockData";
+import { Salesperson } from "@/data/types";
 import { Users, Phone, Mail, CheckCircle2, Plus, X, UserPlus, Check, Trash2, Eye, EyeOff, Clock, Pencil } from "lucide-react";
 
 export default function AdminSalespersonsPage() {
-  const { language, salespersons, villages, addSalesperson, updateSalesperson, deleteSalesperson, toggleSalespersonStatus } = useApp();
+  const { language, salespersons, villages, addSalesperson, updateSalesperson, deleteSalesperson, toggleSalespersonStatus, resetSalespersonPassword } = useApp();
   const t = translations[language];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,16 +18,16 @@ export default function AdminSalespersonsPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
-  const [password, setPassword] = useState("123456");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [assignedVillage, setAssignedVillage] = useState(villages[0]?.id || "v-1");
+  const [assignedVillage, setAssignedVillage] = useState(villages[0]?.id || "");
   const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
 
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editMobile, setEditMobile] = useState("");
   const [editPassword, setEditPassword] = useState("");
-  const [editAssignedVillage, setEditAssignedVillage] = useState("v-1");
+  const [editAssignedVillage, setEditAssignedVillage] = useState("");
   const [editStatus, setEditStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
 
   const openEditModal = (sp: Salesperson) => {
@@ -35,50 +35,55 @@ export default function AdminSalespersonsPage() {
     setEditName(language === "en" ? (sp.nameEn || sp.name) : (sp.name || sp.nameEn));
     setEditEmail(sp.email);
     setEditMobile(sp.mobile);
-    setEditPassword(sp.password || "");
-    setEditAssignedVillage(sp.assignedVillages?.[0] || villages[0]?.id || "v-1");
+    setEditPassword("");
+    setEditAssignedVillage(sp.assignedVillages?.[0] || "");
     setEditStatus(sp.status);
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!spToEdit || !editName.trim() || !editEmail.trim()) return;
 
     const pair = autoBilingualName(editName);
 
-    updateSalesperson(spToEdit.id, {
+    const res = await updateSalesperson(spToEdit.id, {
       name: pair.mr,
       nameEn: pair.en,
       email: editEmail.trim(),
       mobile: editMobile.trim() || spToEdit.mobile,
-      ...(editPassword.trim() ? { password: editPassword.trim() } : {}),
-      assignedVillages: [editAssignedVillage],
+      assignedVillages: editAssignedVillage ? [editAssignedVillage] : [],
       status: editStatus,
     });
+    if (!res.success) return;
+    if (editPassword.trim() && !(await resetSalespersonPassword(spToEdit.id, editPassword.trim())).success) return;
 
     setSpToEdit(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim()) return;
+    if (!name.trim() || !email.trim() || !mobile.trim() || password.trim().length < 6) return;
 
     const pair = autoBilingualName(name);
 
-    addSalesperson({
-      name: pair.mr,
-      nameEn: pair.en,
-      email: email.trim(),
-      mobile: mobile.trim() || "+91 98000 00000",
-      password: password.trim() || "123456",
-      assignedVillages: [assignedVillage],
-      status,
-    });
+    try {
+      await addSalesperson({
+        name: pair.mr,
+        nameEn: pair.en,
+        email: email.trim(),
+        mobile: mobile.trim(),
+        password: password.trim(),
+        assignedVillages: assignedVillage ? [assignedVillage] : [],
+        status,
+      });
+    } catch {
+      return;
+    }
 
     setName("");
     setEmail("");
     setMobile("");
-    setPassword("123456");
+    setPassword("");
     setIsModalOpen(false);
   };
 
@@ -300,6 +305,7 @@ export default function AdminSalespersonsPage() {
                 </label>
                 <input
                   type="tel"
+                  required
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value)}
                   placeholder={t.salespersonMobilePlaceholder}
@@ -315,6 +321,7 @@ export default function AdminSalespersonsPage() {
                   <input
                     type={showPassword ? "text" : "password"}
                     required
+                    minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={t.tempPasswordPlaceholder}
@@ -342,6 +349,7 @@ export default function AdminSalespersonsPage() {
                   onChange={(e) => setAssignedVillage(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
                 >
+                  <option value="">{language === "mr" ? "— गाव नाही —" : "— No village —"}</option>
                   {villages.map((v) => (
                     <option key={v.id} value={v.id}>
                       {formatBilingual(v.marathiName, v.englishName, language)}
@@ -483,6 +491,7 @@ export default function AdminSalespersonsPage() {
                   onChange={(e) => setEditAssignedVillage(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
                 >
+                  <option value="">{language === "mr" ? "— गाव नाही —" : "— No village —"}</option>
                   {villages.map((v) => (
                     <option key={v.id} value={v.id}>
                       {formatBilingual(v.marathiName, v.englishName, language)}

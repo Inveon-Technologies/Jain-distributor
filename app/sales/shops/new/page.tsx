@@ -3,6 +3,7 @@
 import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
+import { DataGate } from "@/components/common/DataGate";
 import { translations } from "@/data/translations";
 import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
 import { ArrowLeft, Check, Store } from "lucide-react";
@@ -21,27 +22,33 @@ function AddNewShopContent() {
   const [address, setAddress] = useState("");
   const [villageId, setVillageId] = useState(defaultVillageId);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || isSaving) return;
 
     const namePair = autoBilingualName(name);
-    const ownerPair = autoBilingualName(owner || (language === "mr" ? "दुकानदार" : "Shopkeeper"));
-    const addressPair = autoBilingualName(address || (language === "mr" ? "मुख्य रस्ता" : "Main Road"));
+    const ownerPair = owner.trim() ? autoBilingualName(owner) : { mr: "", en: "" };
+    const addressPair = address.trim() ? autoBilingualName(address) : { mr: "", en: "" };
 
-    addShop({
-      name: namePair.mr,
-      nameEn: namePair.en,
-      owner: ownerPair.mr,
-      ownerEn: ownerPair.en,
-      mobile: mobile.trim() || "+91 98000 00000",
-      address: addressPair.mr,
-      addressEn: addressPair.en,
-      villageId,
-      outstandingBalance: 0,
-    });
-
-    router.push(`/sales/shops?village=${villageId}`);
+    setIsSaving(true);
+    try {
+      await addShop({
+        name: namePair.mr,
+        nameEn: namePair.en,
+        owner: ownerPair.mr,
+        ownerEn: ownerPair.en,
+        mobile: mobile.trim(),
+        address: addressPair.mr,
+        addressEn: addressPair.en,
+        villageId,
+        outstandingBalance: 0,
+      });
+      router.push(`/sales/shops?village=${villageId}`);
+    } catch {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -165,10 +172,19 @@ function AddNewShopContent() {
   );
 }
 
+function AddNewShopContentGate() {
+  const { villages } = useApp();
+  return (
+    <DataGate ready={villages.length > 0} emptyMr="तुम्हाला अजून कोणतेही गाव नेमलेले नाही. कृपया प्रशासकाशी संपर्क साधा." emptyEn="No villages are available yet. Please ask the admin to add or assign villages.">
+      <AddNewShopContent />
+    </DataGate>
+  );
+}
+
 export default function AddNewShopPage() {
   return (
     <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading...</div>}>
-      <AddNewShopContent />
+      <AddNewShopContentGate />
     </Suspense>
   );
 }

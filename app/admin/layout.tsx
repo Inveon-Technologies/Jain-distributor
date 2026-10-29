@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { Logo } from "@/components/common/Logo";
 import { LanguageToggle } from "@/components/common/LanguageToggle";
+import { useRequireRole } from "@/components/common/useRequireRole";
 import {
   LayoutDashboard,
   Users,
@@ -25,6 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const { language, logout } = useApp();
   const t = translations[language];
+  const allowed = useRequireRole("ADMIN");
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -60,6 +62,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       icon: ClipboardList,
     },
   ];
+
+  if (!allowed) {
+    return <div className="min-h-screen flex items-center justify-center text-slate-400">लोड होत आहे...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#e8eee9] text-slate-800 flex flex-col lg:flex-row">

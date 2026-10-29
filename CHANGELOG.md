@@ -7,6 +7,20 @@ notes when the matching `vx.y.z` tag is pushed.
 
 ## [Unreleased]
 
+### Removed
+
+- All demo data: the frontend mock data (`data/mockData.ts`), the backend demo seed
+  (`npm run seed`), sample order text/items and placeholder names, KPIs and phone numbers.
+  `deploy/clear-demo-data.sql` clears demo rows from an existing database (admins are kept).
+
+### Changed
+
+- The web app now uses the real API: login/registration, villages, shops, salespersons, orders,
+  visits and dashboard KPIs are loaded from and saved to the backend (`lib/api.ts`). Pages
+  redirect to the login screen without a session. The fake "Sign in with Google" button is gone.
+- Salespersons can edit shop details from the field (not the credit balance); orders list
+  accepts `pageSize` up to 500.
+
 ### Added
 
 - Real Marathi voice recording on the order screen (it was a simulation before). The phone's noise

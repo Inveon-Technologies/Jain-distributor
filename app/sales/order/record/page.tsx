@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
+import { DataGate } from "@/components/common/DataGate";
 import { translations } from "@/data/translations";
 import { BilingualName } from "@/components/common/BilingualName";
 import {
@@ -339,10 +340,19 @@ function RecordOrderContent() {
   );
 }
 
+function RecordOrderContentGate() {
+  const { villages, shops } = useApp();
+  return (
+    <DataGate ready={shops.length > 0 && villages.length > 0} emptyMr="अजून दुकान नाही. आधी दुकान जोडा." emptyEn="No shops yet. Add a shop first." href="/sales/villages" linkMr="गाव निवडा" linkEn="Select village">
+      <RecordOrderContent />
+    </DataGate>
+  );
+}
+
 export default function RecordOrderPage() {
   return (
     <Suspense fallback={<div className="p-8 text-center text-slate-400">लोड होत आहे...</div>}>
-      <RecordOrderContent />
+      <RecordOrderContentGate />
     </Suspense>
   );
 }
