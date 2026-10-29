@@ -127,7 +127,7 @@ export default function LoginPage() {
 
           {/* Top Logo */}
           <div className="relative z-10 flex flex-col items-start gap-2.5">
-            <Logo size="lg" light />
+            <Logo size="xl" light />
             <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/60 border border-emerald-500/30 text-emerald-300">
               {t.pandharpur} • Solapur District
             </span>
