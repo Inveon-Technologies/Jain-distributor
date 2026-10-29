@@ -117,4 +117,4 @@ The application features a global language toggle (`[ मराठी | English 
 ## 🐳 Integration Status
 1. The backend API, Docker images and CI/CD are in place (see above).
 2. The UI still reads from the in-memory demo data in `context/AppContext.tsx`; the next step is to call the API (`NEXT_PUBLIC_API_URL`) from there, starting with `POST /api/v1/auth/login`.
-3. The Speech-to-Text handler on `app/sales/order/record/page.tsx` should upload the recording to `POST /api/v1/voice/transcribe` (Google Cloud Speech-to-Text, language code `mr-IN`).
+3. The order screen (`app/sales/order/record/page.tsx`) records with noise suppression (`lib/voice/recorder.ts`) and uploads 16 kHz WAV to `POST /api/v1/voice/transcribe` (Google Cloud Speech-to-Text, `mr-IN`, `lib/voice/transcribe.ts`).

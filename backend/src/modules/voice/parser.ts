@@ -36,7 +36,7 @@ const UNIT_BY_ALIAS = new Map<string, UnitDef>();
 for (const u of UNITS) for (const a of u.aliases) UNIT_BY_ALIAS.set(a.toLowerCase(), u);
 
 /** Common kirana items: spoken Marathi → English label shown next to it in the admin portal. */
-const PRODUCT_EN: Record<string, string> = {
+export const PRODUCT_EN: Record<string, string> = {
   रवा: "Rava", साखर: "Sugar", गूळ: "Jaggery", गुळ: "Jaggery", तांदूळ: "Rice", तांदुळ: "Rice", गहू: "Wheat",
   पीठ: "Flour", आटा: "Atta", मैदा: "Maida", बेसन: "Besan", डाळ: "Dal", "तूर डाळ": "Toor Dal", "मूग डाळ": "Moong Dal",
   "हरभरा डाळ": "Chana Dal", पोहे: "Poha", तेल: "Oil", "शेंगदाणा तेल": "Groundnut Oil", "सोयाबीन तेल": "Soybean Oil",

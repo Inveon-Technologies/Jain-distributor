@@ -40,7 +40,12 @@ All settings come from environment variables and are validated on start (see `.e
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | – | First admin, created only when no admin exists. |
 | `STT_PROVIDER` | `mock` | `google` or `mock`. |
 | `GOOGLE_SPEECH_API_KEY` | – | Required for `google`. Restrict the key to the Speech-to-Text API. |
-| `STT_LANGUAGE` | `mr-IN` | Hindi and Indian English are added as alternatives. |
+| `STT_LANGUAGE` | `mr-IN` | Recognition language. |
+| `STT_MODEL` | `latest_long` | Google model. Falls back to the default model automatically if Google rejects it. |
+| `STT_PHRASE_BOOST` | `12` | Boost (0–20) for the built-in kirana vocabulary: products, brands, units and Marathi number words. `0` turns hints off. |
+| `STT_EXTRA_PHRASES` | – | Comma separated extra words to boost, e.g. local brands: `गणेश चहा,श्री मसाले`. |
+| `STT_ALTERNATIVE_LANGUAGES` | – | Optional extra languages to auto-detect, e.g. `hi-IN`. Off by default because it pulls Marathi words into Hindi spellings. |
+| `STT_MIN_CONFIDENCE` | `0.7` | Below this, the transcript is flagged `needsReview` and unsure words are returned in `lowConfidenceWords`. |
 | `MOCK_TRANSCRIPT` | PRD example sentence | What the mock provider returns. |
 | `MAX_AUDIO_MB` | `10` | Upload limit for recordings. |
 | `BUSINESS_TZ_OFFSET_MINUTES` | `330` | Defines "today" for dashboards (IST). |
@@ -100,7 +105,7 @@ Dates in query strings are `YYYY-MM-DD` in business time (IST).
 
 | Method | Path | Role | Description |
 | --- | --- | --- | --- |
-| POST | `/voice/transcribe` | any | `multipart/form-data` with `audio` (webm/opus, ogg, wav, flac, mp3) and optional `sampleRate`. Returns `{ text, confidence, provider, language, items, unparsed, summary }`. |
+| POST | `/voice/transcribe` | any | `multipart/form-data` with `audio` (webm/opus, ogg, wav, flac, mp3) and optional `sampleRate`. Returns `{ text, confidence, needsReview, lowConfidenceWords, provider, language, items, unparsed, summary }`. `needsReview` is true when confidence is under `STT_MIN_CONFIDENCE`, a word was unsure or a part of the order could not be read. 422 `NO_SPEECH` when nothing was recognised. |
 | POST | `/voice/parse` | any | `{ text }` → `{ items, unparsed, summary }` after the transcript is edited. |
 
 Items look like `{ "name": "रवा", "nameEn": "Rava", "quantity": 10, "unit": "किलो (kg)", "unitCode": "KG" }`.
