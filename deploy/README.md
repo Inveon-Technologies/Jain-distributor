@@ -67,7 +67,7 @@ Then edit `/opt/jain-distributor/.env` and fill in:
 
 * `DOMAIN` (`jaindistributor.in`) and `ACME_EMAIL`
 * `ADMIN_EMAIL` / `ADMIN_PASSWORD` (first admin login)
-* `GOOGLE_SPEECH_API_KEY` with `STT_PROVIDER=google` (required for voice orders; with `mock`, voice orders are refused in production)
+* Speech-to-text: `STT_PROVIDER=browser` works with no key (Chrome/Edge on the phone). For server-side recognition set `STT_PROVIDER=google` with `GOOGLE_SPEECH_API_KEY`, or `STT_PROVIDER=elevenlabs` with `ELEVENLABS_API_KEY`.
 
 ## 4. Configure GitHub (automatic deploys on release)
 

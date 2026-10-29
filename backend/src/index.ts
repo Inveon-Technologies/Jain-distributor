@@ -9,7 +9,7 @@ async function main() {
   await migrate();
   await ensureAdmin();
 
-  if (config.NODE_ENV === "production" && config.STT_PROVIDER !== "google") {
+  if (config.NODE_ENV === "production" && config.STT_PROVIDER === "mock") {
     logger.warn("STT_PROVIDER is not google: voice orders will fail until GOOGLE_SPEECH_API_KEY is configured");
   }
 

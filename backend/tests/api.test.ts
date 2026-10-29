@@ -251,6 +251,12 @@ describe("voice", () => {
     expect(res.status).toBe(400);
   });
 
+  it("reports which speech provider the app should use", async () => {
+    const res = await api().get("/api/v1/voice/config").set(auth(sales));
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({ provider: "mock", language: "mr-IN" });
+  });
+
   it("requires an audio file", async () => {
     const res = await api().post("/api/v1/voice/transcribe").set(auth(sales));
     expect(res.status).toBe(400);

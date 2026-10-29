@@ -17,9 +17,11 @@ const schema = z
     ADMIN_EMAIL: z.string().email().optional(),
     ADMIN_PASSWORD: z.string().min(6).optional(),
     ADMIN_NAME: z.string().default("प्रशासक"),
-    STT_PROVIDER: z.enum(["mock", "google"]).default("mock"),
+    STT_PROVIDER: z.enum(["mock", "google", "elevenlabs", "browser"]).default("mock"),
     STT_LANGUAGE: z.string().default("mr-IN"),
     GOOGLE_SPEECH_API_KEY: z.string().optional(),
+    ELEVENLABS_API_KEY: z.string().optional(),
+    ELEVENLABS_MODEL: z.string().default("scribe_v2"),
     STT_MODEL: z.string().default("latest_long"),
     STT_ALTERNATIVE_LANGUAGES: z.string().default(""),
     STT_PHRASE_BOOST: z.coerce.number().min(0).max(20).default(12),
@@ -34,6 +36,9 @@ const schema = z
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === "production" && env.JWT_SECRET.length < 32) {
       ctx.addIssue({ code: "custom", path: ["JWT_SECRET"], message: "must be at least 32 characters in production" });
+    }
+    if (env.STT_PROVIDER === "elevenlabs" && !env.ELEVENLABS_API_KEY) {
+      ctx.addIssue({ code: "custom", path: ["ELEVENLABS_API_KEY"], message: "required when STT_PROVIDER=elevenlabs" });
     }
     if (env.STT_PROVIDER === "google" && !env.GOOGLE_SPEECH_API_KEY) {
       ctx.addIssue({ code: "custom", path: ["GOOGLE_SPEECH_API_KEY"], message: "required when STT_PROVIDER=google" });

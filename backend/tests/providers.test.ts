@@ -136,3 +136,58 @@ describe("UnconfiguredSpeechProvider", () => {
     });
   });
 });
+
+describe("ElevenLabsSpeechProvider", () => {
+  const ok = (json: unknown) => new Response(JSON.stringify(json), { status: 200 });
+
+  it("sends Marathi audio with keyterms and reads word confidence", async () => {
+    const { ElevenLabsSpeechProvider } = await import("../src/modules/voice/providers.js");
+    const { buildKeyterms } = await import("../src/modules/voice/vocabulary.js");
+    const fetchMock = vi.fn().mockResolvedValue(
+      ok({
+        text: "पाच किलो साखर",
+        words: [
+          { text: "पाच", type: "word", logprob: Math.log(0.95) },
+          { text: " ", type: "spacing" },
+          { text: "किलो", type: "word", logprob: Math.log(0.9) },
+          { text: "साखर", type: "word", logprob: Math.log(0.4) },
+        ],
+      }),
+    );
+    const provider = new ElevenLabsSpeechProvider("xi-key", {
+      languageCode: "mar",
+      keyterms: buildKeyterms(["गणेश चहा"]),
+      minWordConfidence: 0.7,
+      fetchImpl: fetchMock as unknown as typeof fetch,
+    });
+    const result = await provider.transcribe(Buffer.from("audio"), "audio/wav");
+
+    expect(result).toMatchObject({ text: "पाच किलो साखर", provider: "elevenlabs", lowConfidenceWords: ["साखर"] });
+    expect(result.confidence).toBeCloseTo(0.75);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://api.elevenlabs.io/v1/speech-to-text");
+    expect(init.headers).toEqual({ "xi-api-key": "xi-key" });
+    const form = init.body as FormData;
+    expect(form.get("model_id")).toBe("scribe_v2");
+    expect(form.get("language_code")).toBe("mar");
+    expect(form.getAll("keyterms")).toEqual(expect.arrayContaining(["गणेश चहा", "रवा", "पार्ले"]));
+  });
+
+  it("retries without keyterms when ElevenLabs rejects them", async () => {
+    const { ElevenLabsSpeechProvider } = await import("../src/modules/voice/providers.js");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("invalid keyterms", { status: 422 }))
+      .mockResolvedValueOnce(ok({ text: "दहा किलो रवा", words: [] }));
+    const provider = new ElevenLabsSpeechProvider("k", { keyterms: ["रवा"], fetchImpl: fetchMock as unknown as typeof fetch });
+    const result = await provider.transcribe(Buffer.from("x"), "audio/wav");
+    expect(result.text).toBe("दहा किलो रवा");
+    expect((fetchMock.mock.calls[1][1].body as FormData).getAll("keyterms")).toEqual([]);
+  });
+
+  it("maps app language codes to ISO 639-3", async () => {
+    const { toIso6393 } = await import("../src/modules/voice/providers.js");
+    expect(toIso6393("mr-IN")).toBe("mar");
+    expect(toIso6393("hi-IN")).toBe("hin");
+  });
+});

@@ -23,6 +23,10 @@ notes when the matching `vx.y.z` tag is pushed.
 
 ### Added
 
+- More speech-to-text choices via `STT_PROVIDER`: `browser` recognises Marathi on the phone itself
+  (Chrome/Edge, free, no key, text appears while speaking) and `elevenlabs` uses ElevenLabs Scribe
+  with kirana keyterms. `GET /voice/config` tells the app which one is active. Production now
+  defaults to `browser`, and the app falls back to it when no server engine is configured.
 - Real Marathi voice recording on the order screen (it was a simulation before). The phone's noise
   suppression, echo cancellation and auto gain are switched on, rumble and hiss are filtered out,
   silence is trimmed and the order is sent as 16 kHz lossless WAV for best recognition.
