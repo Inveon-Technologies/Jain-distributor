@@ -9,6 +9,13 @@ notes when the matching `vx.y.z` tag is pushed.
 
 ### Added
 
+- Real Marathi voice recording on the order screen (it was a simulation before). The phone's noise
+  suppression, echo cancellation and auto gain are switched on, rumble and hiss are filtered out,
+  silence is trimmed and the order is sent as 16 kHz lossless WAV for best recognition.
+- Speech-to-text accuracy tuning: Google's `latest_long` model, boosted kirana vocabulary (products,
+  brands, units, Marathi numbers, plus `STT_EXTRA_PHRASES`), three alternatives re-ranked by how
+  well they read as order lines, and word-level confidence. Unsure words are highlighted and the
+  transcript is editable before review. Hindi/English auto-detect is now off by default.
 - VPS deployment kit in `deploy/`: Caddy reverse proxy with automatic HTTPS, production `.env`
   template, one-time server setup script, nightly database backups and a step-by-step guide.
 - Production domain set to `jaindistributor.in` (`www.` redirects): published web images call

@@ -225,11 +225,26 @@ describe("voice", () => {
     const res = await api()
       .post("/api/v1/voice/transcribe")
       .set(auth(sales))
-      .attach("audio", Buffer.from("fake-audio"), { filename: "order.webm", contentType: "audio/webm" });
+      .attach("audio", Buffer.alloc(4000), { filename: "order.webm", contentType: "audio/webm" });
     expect(res.status).toBe(200);
-    expect(res.body.data).toMatchObject({ text: MOCK_TRANSCRIPT, provider: "mock", language: "mr-IN", unparsed: [] });
+    expect(res.body.data).toMatchObject({
+      text: MOCK_TRANSCRIPT,
+      provider: "mock",
+      language: "mr-IN",
+      unparsed: [],
+      needsReview: false,
+      lowConfidenceWords: [],
+    });
     expect(res.body.data.items).toHaveLength(4);
     expect(res.body.data.summary).toContain("रवा – 10 किलो");
+  });
+
+  it("rejects recordings that are too short to contain speech", async () => {
+    const res = await api()
+      .post("/api/v1/voice/transcribe")
+      .set(auth(sales))
+      .attach("audio", Buffer.from("tiny"), { filename: "order.webm", contentType: "audio/webm" });
+    expect(res.status).toBe(400);
   });
 
   it("requires an audio file", async () => {

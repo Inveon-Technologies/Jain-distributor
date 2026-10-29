@@ -4,7 +4,7 @@
  * and the common fractional forms used in trade (दीड, अडीच, साडे, सव्वा, पावणे, अर्धा, पाव).
  */
 
-const UNITS_TO_HUNDRED: Record<string, number> = {
+export const UNITS_TO_HUNDRED: Record<string, number> = {
   शून्य: 0,
   एक: 1, दोन: 2, तीन: 3, चार: 4, पाच: 5, सहा: 6, साहा: 6, सात: 7, आठ: 8, नऊ: 9, नउ: 9, दहा: 10,
   अकरा: 11, बारा: 12, तेरा: 13, चौदा: 14, पंधरा: 15, सोळा: 16, सतरा: 17, अठरा: 18, एकोणीस: 19, एकोणवीस: 19,
@@ -22,12 +22,12 @@ const UNITS_TO_HUNDRED: Record<string, number> = {
 };
 
 /** Standalone fractions: "अडीच किलो" = 2.5 kg, "पाव किलो" = 0.25 kg. */
-const FRACTIONS: Record<string, number> = {
+export const FRACTIONS: Record<string, number> = {
   अर्धा: 0.5, अर्धी: 0.5, अर्धे: 0.5, पाव: 0.25, पाऊण: 0.75, पाउण: 0.75, दीड: 1.5, दिड: 1.5, अडीच: 2.5,
 };
 
 /** Prefix modifiers applied to the following number: "साडे तीन" = 3.5, "सव्वा दोन" = 2.25, "पावणे दोन" = 1.75. */
-const MODIFIERS: Record<string, (n: number) => number> = {
+export const MODIFIERS: Record<string, (n: number) => number> = {
   साडे: (n) => n + 0.5,
   साडेतीन: () => 3.5,
   सव्वा: (n) => n + 0.25,

@@ -20,6 +20,11 @@ const schema = z
     STT_PROVIDER: z.enum(["mock", "google"]).default("mock"),
     STT_LANGUAGE: z.string().default("mr-IN"),
     GOOGLE_SPEECH_API_KEY: z.string().optional(),
+    STT_MODEL: z.string().default("latest_long"),
+    STT_ALTERNATIVE_LANGUAGES: z.string().default(""),
+    STT_PHRASE_BOOST: z.coerce.number().min(0).max(20).default(12),
+    STT_EXTRA_PHRASES: z.string().default(""),
+    STT_MIN_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.7),
     MOCK_TRANSCRIPT: z
       .string()
       .default("दहा किलो रवा, पार्ले बिस्किट वीस पॅकेट, पन्नास किलो गूळ आणि डाबर टूथपेस्ट पाच बॉक्स."),
