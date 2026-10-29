@@ -37,8 +37,10 @@ All settings come from environment variables and are validated on start (see `.e
 | `JWT_EXPIRES_IN` | `7d` | Field staff stay signed in for a week. |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma separated; `*` allows any origin. |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | – | First admin, created only when no admin exists. |
-| `STT_PROVIDER` | `mock` | `google` or `mock`. `mock` returns `MOCK_TRANSCRIPT` in development only. In production it makes `/voice/transcribe` answer 503 `STT_NOT_CONFIGURED` instead of a fake order. |
+| `STT_PROVIDER` | `mock` | `browser` (the phone recognises speech, no key), `google`, `elevenlabs` or `mock`. `mock` returns `MOCK_TRANSCRIPT` in development only; in production it makes `/voice/transcribe` answer 503 `STT_NOT_CONFIGURED`. The app reads the choice from `GET /voice/config`. |
 | `GOOGLE_SPEECH_API_KEY` | – | Required for `google`. Restrict the key to the Speech-to-Text API. |
+| `ELEVENLABS_API_KEY` | – | Required for `elevenlabs` (ElevenLabs → Developers → API keys, with Speech to Text access). |
+| `ELEVENLABS_MODEL` | `scribe_v2` | ElevenLabs model. Product and brand words are sent as keyterms (billed extra; `STT_PHRASE_BOOST=0` turns them off). |
 | `STT_LANGUAGE` | `mr-IN` | Recognition language. |
 | `STT_MODEL` | `latest_long` | Google model. Falls back to the default model automatically if Google rejects it. |
 | `STT_PHRASE_BOOST` | `12` | Boost (0–20) for the built-in kirana vocabulary: products, brands, units and Marathi number words. `0` turns hints off. |
@@ -104,6 +106,7 @@ Dates in query strings are `YYYY-MM-DD` in business time (IST).
 
 | Method | Path | Role | Description |
 | --- | --- | --- | --- |
+| GET | `/voice/config` | any | `{ provider, language }`: `browser` means the app recognises speech on the phone and only calls `/voice/parse`. |
 | POST | `/voice/transcribe` | any | `multipart/form-data` with `audio` (webm/opus, ogg, wav, flac, mp3) and optional `sampleRate`. Returns `{ text, confidence, needsReview, lowConfidenceWords, provider, language, items, unparsed, summary }`. `needsReview` is true when confidence is under `STT_MIN_CONFIDENCE`, a word was unsure or a part of the order could not be read. 422 `NO_SPEECH` when nothing was recognised. |
 | POST | `/voice/parse` | any | `{ text }` → `{ items, unparsed, summary }` after the transcript is edited. |
 

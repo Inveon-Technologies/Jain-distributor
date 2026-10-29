@@ -6,7 +6,7 @@ import { badRequest, HttpError } from "../../lib/errors.js";
 import { parse } from "../../lib/validate.js";
 import { authenticate } from "../../middleware/auth.js";
 import { parseOrderText, summarizeItems } from "./parser.js";
-import { createSpeechProvider, type SpeechProvider } from "./providers.js";
+import { activeSpeechProvider, createSpeechProvider, type SpeechProvider } from "./providers.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -16,6 +16,11 @@ const upload = multer({
 export function createVoiceRouter(provider: SpeechProvider = createSpeechProvider()) {
   const router = Router();
   router.use(authenticate);
+
+  /** GET /voice/config – tells the app whether to upload recordings or recognise speech on the phone. */
+  router.get("/config", (_req, res) => {
+    res.json({ data: { provider: activeSpeechProvider(), language: config.STT_LANGUAGE } });
+  });
 
   /**
    * POST /voice/transcribe (multipart/form-data, field "audio")

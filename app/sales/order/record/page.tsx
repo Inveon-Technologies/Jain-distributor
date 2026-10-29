@@ -23,12 +23,26 @@ import {
   type RecorderHandle,
 } from "@/lib/voice/recorder";
 import { TranscribeError, transcribeRecording, type TranscribeResult } from "@/lib/voice/transcribe";
+import {
+  BrowserSpeechError,
+  isBrowserSpeechSupported,
+  startBrowserSpeech,
+  type BrowserSpeechHandle,
+} from "@/lib/voice/browserSpeech";
+import { apiFetch } from "@/lib/api";
+
+/** Below this the salesperson is asked to check the transcript (matches the API's STT_MIN_CONFIDENCE default). */
+const REVIEW_CONFIDENCE = 0.7;
 
 /** Bilingual messages for recording and recognition problems. */
 const ERRORS: Record<string, { mr: string; en: string }> = {
   PERMISSION_DENIED: {
     mr: "माइक वापरण्याची परवानगी द्या (ब्राउझर सेटिंग्ज) आणि पुन्हा प्रयत्न करा.",
     en: "Allow microphone access in the browser settings and try again.",
+  },
+  NETWORK: {
+    mr: "इंटरनेट कनेक्शन तपासा आणि पुन्हा बोला.",
+    en: "Check the internet connection and speak again.",
   },
   NO_MIC: { mr: "फोनमध्ये माइक सापडला नाही.", en: "No microphone was found on this device." },
   UNSUPPORTED: {
@@ -67,9 +81,31 @@ function RecordOrderContent() {
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [result, setResult] = useState<TranscribeResult | null>(null);
   const recorderRef = useRef<RecorderHandle | null>(null);
+  const browserRef = useRef<BrowserSpeechHandle | null>(null);
+  // "browser": recognise on the phone (no server key needed); "server": upload the recording.
+  const [mode, setMode] = useState<"server" | "browser">("server");
+  const [sttLanguage, setSttLanguage] = useState("mr-IN");
+
+  useEffect(() => {
+    apiFetch<{ data: { provider: string; language: string } }>("/voice/config")
+      .then(({ data }) => {
+        setSttLanguage(data.language);
+        // With no server engine configured, fall back to the phone's recogniser when it has one.
+        if (data.provider === "browser" || (data.provider === "none" && isBrowserSpeechSupported())) {
+          setMode("browser");
+        }
+      })
+      .catch(() => undefined);
+  }, []);
 
   // Release the microphone if the salesperson leaves the screen mid-recording.
-  useEffect(() => () => recorderRef.current?.cancel(), []);
+  useEffect(
+    () => () => {
+      recorderRef.current?.cancel();
+      browserRef.current?.cancel();
+    },
+    [],
+  );
 
   // Timer effect when recording
   useEffect(() => {
@@ -87,7 +123,39 @@ function RecordOrderContent() {
     };
   }, [isRecording]);
 
+  const stopBrowserSpeech = async () => {
+    const handle = browserRef.current;
+    if (!handle) return;
+    browserRef.current = null;
+    setIsRecording(false);
+    setIsProcessing(true);
+    try {
+      const { text, confidence } = await handle.stop();
+      if (!text) {
+        setErrorCode("NO_SPEECH");
+        return;
+      }
+      setTranscribedText(text);
+      setResult({
+        text,
+        confidence,
+        needsReview: confidence !== null && confidence < REVIEW_CONFIDENCE,
+        lowConfidenceWords: [],
+        provider: "browser",
+        language: sttLanguage,
+        items: [],
+        unparsed: [],
+        summary: "",
+      });
+    } catch (err) {
+      setErrorCode(err instanceof BrowserSpeechError ? err.code : "STT_FAILED");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const stopAndTranscribe = async () => {
+    if (browserRef.current) return stopBrowserSpeech();
     const recorder = recorderRef.current;
     if (!recorder) return;
     recorderRef.current = null;
@@ -124,6 +192,19 @@ function RecordOrderContent() {
     setErrorCode(null);
     setResult(null);
     setTranscribedText("");
+    if (mode === "browser") {
+      try {
+        browserRef.current = startBrowserSpeech(sttLanguage, setTranscribedText, (err) => {
+          browserRef.current = null;
+          setIsRecording(false);
+          setErrorCode(err.code);
+        });
+        setIsRecording(true);
+      } catch (err) {
+        setErrorCode(err instanceof BrowserSpeechError ? err.code : "UNSUPPORTED");
+      }
+      return;
+    }
     try {
       recorderRef.current = await startRecording(setLevel);
       setIsRecording(true);

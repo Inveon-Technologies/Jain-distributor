@@ -69,3 +69,11 @@ export function buildSpeechContexts(boost: number, extraPhrases: string[] = []):
   }
   return contexts;
 }
+
+/**
+ * Keyterms for ElevenLabs Scribe: product, brand and grocery words (quantities and units are common
+ * words it already knows). Capped at 1000 terms, the batch API's limit.
+ */
+export function buildKeyterms(extraPhrases: string[] = []): string[] {
+  return clean([...extraPhrases, ...Object.keys(PRODUCT_EN), ...BRANDS, ...GROCERY]).slice(0, 1000);
+}

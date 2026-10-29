@@ -1,7 +1,7 @@
 import { config } from "../../config.js";
 import { HttpError } from "../../lib/errors.js";
 import { parseOrderText } from "./parser.js";
-import { buildSpeechContexts, type SpeechContext } from "./vocabulary.js";
+import { buildKeyterms, buildSpeechContexts, type SpeechContext } from "./vocabulary.js";
 
 export interface Transcription {
   text: string;
@@ -178,6 +178,88 @@ export class GoogleSpeechProvider implements SpeechProvider {
   }
 }
 
+export interface ElevenLabsOptions {
+  /** "scribe_v2" (default) or "scribe_v1". */
+  model?: string;
+  /** ISO 639-3 language, "mar" for Marathi. */
+  languageCode?: string;
+  /** Product and brand words to bias recognition towards (keyterm prompting). */
+  keyterms?: string[];
+  minWordConfidence?: number;
+  fetchImpl?: typeof fetch;
+}
+
+interface ElevenLabsWord {
+  text?: string;
+  type?: string;
+  logprob?: number;
+}
+
+/** ISO 639-1 / BCP-47 → ISO 639-3 for the languages this app uses. */
+export function toIso6393(languageCode: string): string {
+  const base = languageCode.toLowerCase().split("-")[0];
+  return ({ mr: "mar", hi: "hin", en: "eng" } as Record<string, string>)[base] ?? base;
+}
+
+/**
+ * ElevenLabs Scribe speech-to-text (POST /v1/speech-to-text, multipart). Scribe lists Marathi in its
+ * high-accuracy tier. Keyterms bias it towards kirana vocabulary; if ElevenLabs rejects them, the
+ * request is retried once without keyterms. Confidence comes from per-word log probabilities.
+ */
+export class ElevenLabsSpeechProvider implements SpeechProvider {
+  readonly name = "elevenlabs";
+  private readonly fetchImpl: typeof fetch;
+
+  constructor(
+    private readonly apiKey: string,
+    private readonly options: ElevenLabsOptions = {},
+  ) {
+    this.fetchImpl = options.fetchImpl ?? fetch;
+  }
+
+  async transcribe(audio: Buffer, mimeType: string): Promise<Transcription> {
+    const keyterms = this.options.keyterms ?? [];
+    let res = await this.request(audio, mimeType, keyterms);
+    if ((res.status === 400 || res.status === 422) && keyterms.length) {
+      res = await this.request(audio, mimeType, []);
+    }
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      throw new HttpError(502, "STT_FAILED", `Speech-to-text request failed (${res.status})`, detail.slice(0, 500));
+    }
+    const json = (await res.json()) as { text?: string; words?: ElevenLabsWord[] };
+    const words = (json.words ?? []).filter((w) => w.type === "word" && w.text?.trim());
+    const probs = words
+      .map((w) => (typeof w.logprob === "number" ? Math.exp(w.logprob) : undefined))
+      .filter((p): p is number => p !== undefined);
+    const threshold = this.options.minWordConfidence ?? 0;
+    const lowConfidenceWords = words
+      .filter((w) => typeof w.logprob === "number" && Math.exp(w.logprob) < threshold)
+      .map((w) => w.text!.trim().replace(/[.,!?।]+$/, ""));
+    return {
+      text: (json.text ?? "").trim(),
+      confidence: probs.length ? probs.reduce((s, p) => s + p, 0) / probs.length : undefined,
+      lowConfidenceWords: [...new Set(lowConfidenceWords)],
+      provider: this.name,
+    };
+  }
+
+  private request(audio: Buffer, mimeType: string, keyterms: string[]): Promise<Response> {
+    const form = new FormData();
+    form.append("file", new Blob([new Uint8Array(audio)], { type: mimeType }), "order");
+    form.append("model_id", this.options.model ?? "scribe_v2");
+    form.append("language_code", this.options.languageCode ?? "mar");
+    form.append("tag_audio_events", "false");
+    for (const term of keyterms) form.append("keyterms", term);
+    return this.fetchImpl("https://api.elevenlabs.io/v1/speech-to-text", {
+      method: "POST",
+      headers: { "xi-api-key": this.apiKey },
+      body: form,
+      signal: AbortSignal.timeout(60_000),
+    });
+  }
+}
+
 const csv = (v: string) =>
   v
     .split(",")
@@ -197,6 +279,15 @@ export class UnconfiguredSpeechProvider implements SpeechProvider {
   }
 }
 
+/** What the app should use for speech recognition: the server ("google"/"elevenlabs"/"mock"), the phone ("browser") or nothing. */
+export function activeSpeechProvider(): "google" | "elevenlabs" | "mock" | "browser" | "none" {
+  if (config.STT_PROVIDER !== "mock") return config.STT_PROVIDER;
+  return config.NODE_ENV === "production" ? "none" : "mock";
+}
+
+// Keyterm prompting is billed extra by ElevenLabs; STT_PHRASE_BOOST=0 turns it off with the Google hints.
+const keyterms = (extra: string) => (config.STT_PHRASE_BOOST > 0 ? buildKeyterms(csv(extra)) : []);
+
 export function createSpeechProvider(): SpeechProvider {
   if (config.STT_PROVIDER === "google") {
     return new GoogleSpeechProvider(config.GOOGLE_SPEECH_API_KEY!, config.STT_LANGUAGE, {
@@ -206,6 +297,15 @@ export function createSpeechProvider(): SpeechProvider {
       minWordConfidence: config.STT_MIN_CONFIDENCE,
     });
   }
-  if (config.NODE_ENV === "production") return new UnconfiguredSpeechProvider();
+  if (config.STT_PROVIDER === "elevenlabs") {
+    return new ElevenLabsSpeechProvider(config.ELEVENLABS_API_KEY!, {
+      model: config.ELEVENLABS_MODEL,
+      languageCode: toIso6393(config.STT_LANGUAGE),
+      keyterms: keyterms(config.STT_EXTRA_PHRASES),
+      minWordConfidence: config.STT_MIN_CONFIDENCE,
+    });
+  }
+  // "browser": the app recognises speech on the phone itself; nothing is uploaded here.
+  if (config.STT_PROVIDER === "browser" || config.NODE_ENV === "production") return new UnconfiguredSpeechProvider();
   return new MockSpeechProvider(config.MOCK_TRANSCRIPT);
 }
