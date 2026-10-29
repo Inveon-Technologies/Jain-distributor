@@ -42,12 +42,15 @@ export function Logo({
       width={dims.w}
       height={dims.h}
       priority
-      className="h-auto w-auto object-contain max-h-full"
+      // Pin the rendered size: "w-auto h-auto" made the browser fall back to the
+      // file's natural 874px size, so the logo covered the whole page on desktop.
+      style={{ width: dims.w, height: dims.h }}
+      className="object-contain shrink-0"
     />
   );
 
   return (
-    <div className={`inline-flex items-center select-none ${className}`}>
+    <div className={`inline-flex items-center shrink-0 select-none ${className}`}>
       {imageElement}
     </div>
   );
