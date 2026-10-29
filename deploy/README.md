@@ -67,7 +67,7 @@ Then edit `/opt/jain-distributor/.env` and fill in:
 
 * `DOMAIN` (`jaindistributor.in`) and `ACME_EMAIL`
 * `ADMIN_EMAIL` / `ADMIN_PASSWORD` (first admin login)
-* `GOOGLE_SPEECH_API_KEY` (or `STT_PROVIDER=mock` for a demo)
+* `GOOGLE_SPEECH_API_KEY` with `STT_PROVIDER=google` (required for voice orders; with `mock`, voice orders are refused in production)
 
 ## 4. Configure GitHub (automatic deploys on release)
 

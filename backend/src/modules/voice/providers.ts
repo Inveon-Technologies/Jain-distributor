@@ -21,7 +21,10 @@ export interface TranscribeOptions {
   sampleRateHertz?: number;
 }
 
-/** Development / demo provider: returns a fixed Marathi sentence (or the client-supplied hint). */
+/**
+ * Development / test provider: returns a fixed Marathi sentence whatever was said. It is never used
+ * in production (see `createSpeechProvider`), so salespeople never get a made-up order.
+ */
 export class MockSpeechProvider implements SpeechProvider {
   readonly name = "mock";
   constructor(private readonly transcript: string) {}
@@ -181,6 +184,19 @@ const csv = (v: string) =>
     .map((s) => s.trim())
     .filter(Boolean);
 
+/** Used in production when no real recogniser is configured: every request fails clearly. */
+export class UnconfiguredSpeechProvider implements SpeechProvider {
+  readonly name = "none";
+
+  async transcribe(): Promise<Transcription> {
+    throw new HttpError(
+      503,
+      "STT_NOT_CONFIGURED",
+      "Speech-to-text is not set up on the server. Set STT_PROVIDER=google and GOOGLE_SPEECH_API_KEY.",
+    );
+  }
+}
+
 export function createSpeechProvider(): SpeechProvider {
   if (config.STT_PROVIDER === "google") {
     return new GoogleSpeechProvider(config.GOOGLE_SPEECH_API_KEY!, config.STT_LANGUAGE, {
@@ -190,5 +206,6 @@ export function createSpeechProvider(): SpeechProvider {
       minWordConfidence: config.STT_MIN_CONFIDENCE,
     });
   }
+  if (config.NODE_ENV === "production") return new UnconfiguredSpeechProvider();
   return new MockSpeechProvider(config.MOCK_TRANSCRIPT);
 }
