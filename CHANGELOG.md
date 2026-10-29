@@ -40,6 +40,13 @@ notes when the matching `vx.y.z` tag is pushed.
 - Repository renamed from `Jain-distributor-web` to `Jain-distributor`. Published images are now
   `ghcr.io/inveon-technologies/jain-distributor-api` and `…/jain-distributor-web`.
 
+### Fixed
+
+- Voice orders no longer show the fixed sample sentence ("दहा किलो रवा, पार्ले बिस्किट…") with a
+  fake 100% accuracy when the server runs `STT_PROVIDER=mock`. In production the API now answers
+  503 `STT_NOT_CONFIGURED` and the order screen asks the salesperson to type the order until
+  Google Speech-to-Text is configured.
+
 ## [1.0.0] - 2026-10-26
 
 First MVP release (PRD INV-JDS-PRD-01, Phase 1 scope): backend API, containers and CI/CD.
