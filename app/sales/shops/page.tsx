@@ -3,8 +3,9 @@
 import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
+import { DataGate } from "@/components/common/DataGate";
 import { translations } from "@/data/translations";
-import { Shop } from "@/data/mockData";
+import { Shop } from "@/data/types";
 import { BilingualName } from "@/components/common/BilingualName";
 import { autoBilingualName } from "@/utils/transliterate";
 import {
@@ -344,10 +345,19 @@ function ShopsContent() {
   );
 }
 
+function ShopsContentGate() {
+  const { villages } = useApp();
+  return (
+    <DataGate ready={villages.length > 0} emptyMr="तुम्हाला अजून कोणतेही गाव नेमलेले नाही. कृपया प्रशासकाशी संपर्क साधा." emptyEn="No villages are available yet. Please ask the admin to add or assign villages.">
+      <ShopsContent />
+    </DataGate>
+  );
+}
+
 export default function ShopsPage() {
   return (
     <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading...</div>}>
-      <ShopsContent />
+      <ShopsContentGate />
     </Suspense>
   );
 }

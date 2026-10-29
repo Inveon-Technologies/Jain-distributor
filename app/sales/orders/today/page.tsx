@@ -93,7 +93,7 @@ export default function TodayOrdersPage() {
 
                   <div className="flex flex-col items-end gap-1">
                     <span className="font-mono text-xs font-bold text-slate-400">
-                      {order.id}
+                      {order.displayId}
                     </span>
                     <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-brand-primary border border-emerald-200 text-xs font-bold flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" />

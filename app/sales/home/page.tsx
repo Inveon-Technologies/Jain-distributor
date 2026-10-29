@@ -32,8 +32,8 @@ export default function SalesHomePage() {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight flex flex-wrap items-center gap-2">
             <span>{getGreeting()},</span>
             <BilingualName
-              mr={currentUser?.name || "अमोल पाटील"}
-              en={currentUser?.nameEn || "Amol Patil"}
+              mr={currentUser?.name || ""}
+              en={currentUser?.nameEn || ""}
               secondaryClassName="text-base sm:text-lg font-normal text-slate-500 ml-1.5"
             />
             <span>!</span>
@@ -126,7 +126,7 @@ export default function SalesHomePage() {
 
           {/* Step 2 */}
           <div
-            onClick={() => router.push(`/sales/shops?village=${selectedVillage?.id || "v-1"}`)}
+            onClick={() => router.push(`/sales/shops?village=${selectedVillage?.id || ""}`)}
             className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs hover:border-amber-300 hover:shadow-md transition cursor-pointer flex flex-col justify-between"
           >
             <div>

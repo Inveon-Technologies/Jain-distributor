@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { formatBilingual, autoBilingualName } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
-import { Shop } from "@/data/mockData";
+import { Shop } from "@/data/types";
 import { Store, MapPin, Phone, Search, Trash2, Pencil, X, Check } from "lucide-react";
 
 export default function AdminShopsPage() {

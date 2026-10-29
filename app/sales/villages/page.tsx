@@ -3,8 +3,9 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
+import { apiFetch } from "@/lib/api";
 import { translations } from "@/data/translations";
-import { Village } from "@/data/mockData";
+import { Village } from "@/data/types";
 import { BilingualName } from "@/components/common/BilingualName";
 import { MapPin, Store, ArrowRight, CheckCircle2 } from "lucide-react";
 
@@ -15,6 +16,8 @@ export default function VillagesSelectionPage() {
 
   const handleSelectVillage = (village: Village) => {
     setSelectedVillage(village);
+    // Check-in so the admin dashboard shows the village visit even before an order is taken.
+    apiFetch("/visits", { method: "POST", body: { villageId: village.id } }).catch(() => undefined);
     router.push(`/sales/shops?village=${village.id}`);
   };
 

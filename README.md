@@ -53,7 +53,6 @@ The backend lives in [`backend/`](backend/README.md): Node.js 22 + Express 5 + T
 ```bash
 cp .env.example .env                 # set JWT_SECRET, ADMIN_PASSWORD, POSTGRES_PASSWORD
 docker compose up -d --build         # PostgreSQL + API (http://localhost:4000) + web (http://localhost:3000)
-docker compose exec api node dist/db/seed.js   # optional demo data
 ```
 
 ### CI/CD
@@ -116,5 +115,5 @@ The application features a global language toggle (`[ मराठी | English 
 
 ## 🐳 Integration Status
 1. The backend API, Docker images and CI/CD are in place (see above).
-2. The UI still reads from the in-memory demo data in `context/AppContext.tsx`; the next step is to call the API (`NEXT_PUBLIC_API_URL`) from there, starting with `POST /api/v1/auth/login`.
+2. The UI talks to the API through `lib/api.ts` (`NEXT_PUBLIC_API_URL`, default same-origin `/api/v1`); `context/AppContext.tsx` holds the session (JWT in `localStorage`) and the loaded data. There is no demo data.
 3. The order screen (`app/sales/order/record/page.tsx`) records with noise suppression (`lib/voice/recorder.ts`) and uploads 16 kHz WAV to `POST /api/v1/voice/transcribe` (Google Cloud Speech-to-Text, `mr-IN`, `lib/voice/transcribe.ts`).

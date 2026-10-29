@@ -1,3 +1,4 @@
+import { API_BASE_URL, getAuthToken } from "@/lib/api";
 import type { Recording } from "./recorder";
 
 export interface TranscribeItem {
@@ -30,24 +31,12 @@ export class TranscribeError extends Error {
   }
 }
 
-// Same base URL and token key as the app's API client (lib/api.ts).
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api/v1";
-const TOKEN_KEY = "jd_token";
-
-function authToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
 /** Uploads a recording to POST /voice/transcribe and returns the Marathi transcript and parsed items. */
 export async function transcribeRecording(recording: Recording): Promise<TranscribeResult> {
   const form = new FormData();
   form.append("audio", recording.blob, "order.wav");
   form.append("sampleRate", String(recording.sampleRate));
-  const token = authToken();
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE_URL}/voice/transcribe`, {
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,

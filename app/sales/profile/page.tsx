@@ -24,10 +24,11 @@ import {
 
 export default function SalesProfilePage() {
   const router = useRouter();
-  const { language, currentUser, logout, orders, villages, updateSalespersonPassword } = useApp();
+  const { language, currentUser, logout, orders, villages, changePassword } = useApp();
   const t = translations[language];
 
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -40,12 +41,12 @@ export default function SalesProfilePage() {
     router.push("/");
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError("");
     setPasswordSuccess("");
 
-    if (!newPassword) {
+    if (!newPassword || !currentPassword) {
       setPasswordError(language === "mr" ? "कृपया पासवर्ड टाका" : "Please enter a password");
       return;
     }
@@ -55,19 +56,24 @@ export default function SalesProfilePage() {
       return;
     }
 
-    if (currentUser?.id) {
-      updateSalespersonPassword(currentUser.id, newPassword);
-      setPasswordSuccess(t.passwordChangedSuccess);
-      setNewPassword("");
-      setConfirmPassword("");
-      setTimeout(() => {
-        setIsPasswordModalOpen(false);
-        setPasswordSuccess("");
-      }, 1500);
+    const res = await changePassword(currentPassword, newPassword);
+    if (!res.success) {
+      setPasswordError(res.error || "Could not change password");
+      return;
     }
+    setPasswordSuccess(t.passwordChangedSuccess);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setTimeout(() => {
+      setIsPasswordModalOpen(false);
+      setPasswordSuccess("");
+    }, 1500);
   };
 
   const userOrders = orders.filter((o) => o.salespersonId === currentUser?.id);
+  const shopsVisitedToday = new Set(userOrders.map((o) => o.shopId)).size;
+  const assignedVillages = villages.filter((v) => currentUser?.assignedVillages.includes(v.id));
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -85,14 +91,14 @@ export default function SalesProfilePage() {
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               <BilingualName
-                mr={currentUser?.name || "अमोल पाटील"}
-                en={currentUser?.nameEn || "Amol Patil"}
+                mr={currentUser?.name || ""}
+                en={currentUser?.nameEn || ""}
                 secondaryClassName="text-base sm:text-lg font-normal text-emerald-200 ml-2"
               />
             </h1>
             <p className="text-xs sm:text-sm text-emerald-100/90 font-medium flex items-center justify-center sm:justify-start gap-2">
               <Mail className="w-3.5 h-3.5" />
-              <span>{currentUser?.email || "amol@jain.com"}</span>
+              <span>{currentUser?.email || ""}</span>
             </p>
             <p className="text-xs sm:text-sm text-emerald-100/90 font-medium flex items-center justify-center sm:justify-start gap-2">
               <Phone className="w-3.5 h-3.5" />
@@ -121,7 +127,7 @@ export default function SalesProfilePage() {
             {t.totalVisitsToday}
           </span>
           <span className="text-2xl sm:text-3xl font-black text-slate-800">
-            8
+            {shopsVisitedToday}
           </span>
           <span className="text-xs text-slate-500 font-medium block mt-1">
             {language === "mr" ? "दुकानांना भेटी" : "Stores Visited"}
@@ -137,7 +143,10 @@ export default function SalesProfilePage() {
         </h3>
 
         <div className="flex flex-wrap gap-2">
-          {villages.slice(0, 3).map((v) => (
+          {assignedVillages.length === 0 && (
+            <span className="text-xs text-slate-400">{language === "mr" ? "अजून गाव नेमलेले नाही" : "No villages assigned yet"}</span>
+          )}
+          {assignedVillages.map((v) => (
             <span
               key={v.id}
               className="px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-brand-primary text-xs font-bold flex items-center gap-1"
@@ -236,6 +245,23 @@ export default function SalesProfilePage() {
             <form onSubmit={handleChangePassword} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  {language === "mr" ? "सध्याचा पासवर्ड" : "Current Password"} *
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="password"
+                    required
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
                   {t.newPasswordLabel} *
                 </label>
                 <div className="relative">
@@ -243,6 +269,7 @@ export default function SalesProfilePage() {
                   <input
                     type={showNewPassword ? "text" : "password"}
                     required
+                    minLength={6}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="••••••••"

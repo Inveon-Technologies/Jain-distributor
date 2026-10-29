@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { Logo } from "@/components/common/Logo";
 import { LanguageToggle } from "@/components/common/LanguageToggle";
+import { useRequireRole } from "@/components/common/useRequireRole";
 import { BilingualName } from "@/components/common/BilingualName";
 import { formatBilingual } from "@/utils/transliterate";
 import {
@@ -21,6 +22,7 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const { language, currentUser, logout } = useApp();
   const t = translations[language];
+  const allowed = useRequireRole("SALESPERSON");
 
   const handleLogout = () => {
     logout();
@@ -35,10 +37,14 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
   ];
 
   const salespersonDisplayName = formatBilingual(
-    currentUser?.name || "अमोल पाटील",
-    currentUser?.nameEn || "Amol Patil",
+    currentUser?.name || "",
+    currentUser?.nameEn || "",
     language
   );
+
+  if (!allowed) {
+    return <div className="min-h-screen flex items-center justify-center text-slate-400">लोड होत आहे...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#e8eee9] flex flex-col text-slate-800">
@@ -65,8 +71,8 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
               <div className="hidden sm:flex flex-col leading-tight max-w-[200px]">
                 <span className="text-xs font-bold text-slate-900 truncate" title={salespersonDisplayName}>
                   <BilingualName
-                    mr={currentUser?.name || "अमोल पाटील"}
-                    en={currentUser?.nameEn || "Amol Patil"}
+                    mr={currentUser?.name || ""}
+                    en={currentUser?.nameEn || ""}
                     secondaryClassName="text-[11px] font-normal text-slate-500 ml-1"
                   />
                 </span>

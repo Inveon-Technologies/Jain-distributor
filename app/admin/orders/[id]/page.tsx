@@ -3,6 +3,7 @@
 import React from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
+import { DataGate } from "@/components/common/DataGate";
 import { translations } from "@/data/translations";
 import { BilingualName } from "@/components/common/BilingualName";
 import {
@@ -22,7 +23,7 @@ export default function OrderDetailsPage() {
   const { language, orders, shops, villages, salespersons } = useApp();
   const t = translations[language];
 
-  const order = orders.find((o) => o.id === orderId) || orders[0];
+  const order = orders.find((o) => o.id === orderId);
   const shop = shops.find((s) => s.id === order?.shopId);
   const village = villages.find((v) => v.id === order?.villageId);
   const salesperson = salespersons.find((s) => s.id === order?.salespersonId);
@@ -35,6 +36,14 @@ export default function OrderDetailsPage() {
 
   const totalQuantity =
     order?.items.reduce((acc, curr) => acc + curr.quantity, 0) || 0;
+
+  if (!order) {
+    return (
+      <DataGate ready={false} emptyMr="ऑर्डर सापडली नाही." emptyEn="Order not found." href="/admin/orders" linkMr="ऑर्डर्स यादी" linkEn="All orders">
+        {null}
+      </DataGate>
+    );
+  }
 
   return (
     <>
@@ -58,7 +67,7 @@ export default function OrderDetailsPage() {
                 {t.orderDetails}
               </h1>
               <span className="font-mono text-sm px-3 py-1 rounded-xl bg-slate-100 font-bold text-slate-700">
-                {order?.id}
+                {order?.displayId}
               </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
@@ -216,7 +225,7 @@ export default function OrderDetailsPage() {
                   {language === "mr" ? "ई-मेल" : "Email"}
                 </span>
                 <span className="text-slate-800 font-semibold block mt-0.5">
-                  {salesperson?.email || "amol@jain.com"}
+                  {salesperson?.email || ""}
                 </span>
               </div>
 
@@ -365,7 +374,7 @@ export default function OrderDetailsPage() {
                 अधिकृत ऑर्डर पावती
               </div>
               <div className="text-xs font-mono font-bold text-slate-800 mt-1">
-                No: {order?.id}
+                No: {order?.displayId}
               </div>
               <div className="text-[11px] text-slate-500">
                 Date: {order?.createdAt}
@@ -407,7 +416,7 @@ export default function OrderDetailsPage() {
             </span>
             <div>
               <span className="font-bold text-slate-700">ऑर्डर क्रमांक:</span>{" "}
-              <span className="font-mono font-bold text-slate-900">{order?.id}</span>
+              <span className="font-mono font-bold text-slate-900">{order?.displayId}</span>
             </div>
             <div>
               <span className="font-bold text-slate-700">नोंदणी तारीख:</span> {order?.createdAt}

@@ -60,7 +60,6 @@ GitHub Actions before it can be released.
 ```bash
 cp .env.example .env              # set JWT_SECRET, ADMIN_PASSWORD, POSTGRES_PASSWORD
 docker compose up -d --build      # db + api (:4000) + web (:3000)
-docker compose exec api node dist/db/seed.js   # optional demo data (salesperson password: sales123)
 ```
 
 The API documentation is in [`backend/README.md`](backend/README.md).

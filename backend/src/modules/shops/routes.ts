@@ -90,9 +90,11 @@ shopsRouter.post("/", async (req, res) => {
   res.status(201).json({ data: await getShop(rows[0].id) });
 });
 
-shopsRouter.patch("/:id", requireAdmin, async (req, res) => {
+/** Both roles: salespersons correct shop details from the field; only admins change the credit balance. */
+shopsRouter.patch("/:id", async (req, res) => {
   const { id } = parse(idParams, req.params);
   const b = parse(updateBody, req.body);
+  if (currentUser(req).role !== "ADMIN") delete b.outstandingBalance;
   await getShop(id);
   if (b.villageId) await assertVillageActive(b.villageId);
 
@@ -108,7 +110,9 @@ shopsRouter.patch("/:id", requireAdmin, async (req, res) => {
     values.push(value);
     sets.push(`${column} = $${values.length}`);
   }
-  await pool.query(`UPDATE shops SET ${sets.join(", ")}, updated_at = now() WHERE id = $1`, values);
+  if (sets.length) {
+    await pool.query(`UPDATE shops SET ${sets.join(", ")}, updated_at = now() WHERE id = $1`, values);
+  }
   res.json({ data: await getShop(id) });
 });
 
