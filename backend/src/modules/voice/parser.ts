@@ -1,3 +1,4 @@
+import { BRANDS, GROCERY } from "./lexicon.js";
 import { isNumberToken, normalizeDigits, readQuantity } from "./numbers.js";
 
 /**
@@ -69,7 +70,13 @@ export interface OrderItem {
 
 export interface ParseResult {
   items: OrderItem[];
+  /** Parts that sound like an order line but could not be read (no quantity, for example). */
   unparsed: string[];
+  /**
+   * Parts with no product, unit or number word at all: usually people talking nearby that the
+   * microphone picked up. Left out of the order but returned so the app can show them.
+   */
+  ignored: string[];
 }
 
 function cleanToken(token: string): string {
@@ -213,17 +220,57 @@ function parseSegment(tokens: string[]): OrderItem | undefined {
   };
 }
 
+let lexiconStems: Set<string> | undefined;
+
+/** Stems of every word in the product, brand and grocery lists. */
+function knownStems(): Set<string> {
+  lexiconStems ??= new Set(
+    [...Object.keys(PRODUCT_EN), ...BRANDS, ...GROCERY]
+      .flatMap((p) => p.split(/\s+/))
+      .filter((w) => w.length > 1)
+      .map(stem),
+  );
+  return lexiconStems;
+}
+
+const isKnownWord = (token: string) => knownStems().has(stem(token));
+const isUnitWord = (token: string) => UNIT_BY_ALIAS.has(token.toLowerCase());
+
+/**
+ * Background talk often lands inside an item ("रवा अरे तू कधी आलास"). When the name contains a known
+ * product, keep it with at most one describing word in front ("बारीक रवा") and drop the rest.
+ */
+function trimChatter(name: string): { name: string; extra?: string } {
+  const words = name.split(" ");
+  const known = words.map(isKnownWord);
+  const first = known.indexOf(true);
+  if (first === -1) return { name };
+  const last = known.lastIndexOf(true);
+  const start = Math.max(0, first - 1);
+  const kept = words.slice(start, last + 1);
+  const dropped = [...words.slice(0, start), ...words.slice(last + 1)];
+  return { name: kept.join(" "), extra: dropped.length ? dropped.join(" ") : undefined };
+}
+
 export function parseOrderText(text: string): ParseResult {
   const items: OrderItem[] = [];
   const unparsed: string[] = [];
+  const ignored: string[] = [];
   for (const segment of segmentsOf(text)) {
     for (const part of splitRunOn(segment)) {
+      const words = part.filter((t) => !FILLERS.has(t.toLowerCase()));
+      if (!words.length) continue;
       const item = parseSegment(part);
-      if (item) items.push(item);
-      else if (part.some((t) => !FILLERS.has(t.toLowerCase()))) unparsed.push(part.join(" "));
+      // A number with neither a unit nor a known product ("दोन मिनिटात येतो") is conversation, not an item.
+      if (item && (part.some(isUnitWord) || item.name.split(" ").some(isKnownWord))) {
+        const { name, extra } = trimChatter(item.name);
+        items.push(name === item.name ? item : { ...item, name, nameEn: englishName(name) });
+        if (extra) ignored.push(extra);
+      } else if (words.some((t) => isUnitWord(t) || isKnownWord(t))) unparsed.push(part.join(" "));
+      else ignored.push(part.join(" "));
     }
   }
-  return { items, unparsed };
+  return { items, unparsed, ignored };
 }
 
 /**

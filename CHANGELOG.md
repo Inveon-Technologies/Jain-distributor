@@ -23,6 +23,10 @@ notes when the matching `vx.y.z` tag is pushed.
 
 ### Added
 
+- Background talk is kept out of voice orders: press and hold the mic to speak (a tap still
+  toggles), each press adds to the order, and talk with no product, unit or number word ("अरे तू
+  कधी आलास") is left out and shown separately with an "add to order" button. Server-side
+  recordings also turn down voices much quieter than the salesperson's.
 - Spoken orders are rewritten as one item per line with digit quantities ("रवा 1 किलो") right
   after recording, without punctuation. Run-on speech is split into separate items more reliably,
   repeated words ("शेंगदाणा शेंगदाणे") are collapsed, "पावशेर" reads as 250 g and "जुडी" (bunch) is a

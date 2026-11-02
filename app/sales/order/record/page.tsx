@@ -84,6 +84,11 @@ function RecordOrderContent() {
   const browserRef = useRef<BrowserSpeechHandle | null>(null);
   // "browser": recognise on the phone (no server key needed); "server": upload the recording.
   const [mode, setMode] = useState<"server" | "browser">("server");
+  // Text already in the box when this recording started; new speech is added below it.
+  const baseTextRef = useRef("");
+  const pressStartRef = useRef(0);
+  // Talk the parser set aside as not part of the order (people speaking nearby).
+  const [ignored, setIgnored] = useState<string[]>([]);
   const [sttLanguage, setSttLanguage] = useState("mr-IN");
 
   useEffect(() => {
@@ -123,6 +128,8 @@ function RecordOrderContent() {
     };
   }, [isRecording]);
 
+  const withBase = (text: string) => [baseTextRef.current.trim(), text.trim()].filter(Boolean).join("\n");
+
   const stopBrowserSpeech = async () => {
     const handle = browserRef.current;
     if (!handle) return;
@@ -136,13 +143,14 @@ function RecordOrderContent() {
         return;
       }
       // Turn the spoken words into one item per line with numeric quantities.
-      const parsed = await apiFetch<{ data: Pick<TranscribeResult, "items" | "unparsed" | "summary" | "formattedText"> }>(
-        "/voice/parse",
-        { method: "POST", body: { text } },
-      )
+      const parsed = await apiFetch<{
+        data: Pick<TranscribeResult, "items" | "unparsed" | "ignored" | "summary" | "formattedText">;
+      }>("/voice/parse", { method: "POST", body: { text } })
         .then((r) => r.data)
-        .catch(() => ({ items: [], unparsed: [], summary: "", formattedText: undefined }));
-      setTranscribedText(parsed.formattedText || text);
+        .catch(() => ({ items: [], unparsed: [], ignored: [], summary: "", formattedText: undefined }));
+      // formattedText is "" when everything heard was background talk; keep only the earlier text then.
+      setTranscribedText(withBase(parsed.formattedText ?? text));
+      setIgnored((prev) => [...prev, ...(parsed.ignored ?? [])]);
       setResult({
         text,
         confidence,
@@ -172,7 +180,8 @@ function RecordOrderContent() {
       const recording = await recorder.stop();
       const data = await transcribeRecording(recording);
       setResult(data);
-      setTranscribedText(data.formattedText || data.text);
+      setTranscribedText(withBase(data.formattedText ?? data.text));
+      setIgnored((prev) => [...prev, ...(data.ignored ?? [])]);
     } catch (err) {
       if (err instanceof RecorderError) setErrorCode(err.code);
       else if (err instanceof TranscribeError && (err.code === "NO_SPEECH" || err.code === "STT_NOT_CONFIGURED"))
@@ -197,10 +206,10 @@ function RecordOrderContent() {
     }
     setErrorCode(null);
     setResult(null);
-    setTranscribedText("");
+    baseTextRef.current = transcribedText;
     if (mode === "browser") {
       try {
-        browserRef.current = startBrowserSpeech(sttLanguage, setTranscribedText, (err) => {
+        browserRef.current = startBrowserSpeech(sttLanguage, (live) => setTranscribedText(withBase(live)), (err) => {
           browserRef.current = null;
           setIsRecording(false);
           setErrorCode(err.code);
@@ -217,6 +226,28 @@ function RecordOrderContent() {
     } catch (err) {
       setErrorCode(err instanceof RecorderError ? err.code : "NO_MIC");
     }
+  };
+
+  // Hold the mic to talk and let go to stop, so talk around the salesperson in between is never
+  // recorded. A quick tap still starts a recording that runs until the next tap.
+  const handlePressStart = (e: React.PointerEvent) => {
+    e.preventDefault();
+    pressStartRef.current = Date.now();
+    void handleToggleRecording();
+  };
+
+  const handlePressEnd = () => {
+    const heldMs = Date.now() - pressStartRef.current;
+    if (pressStartRef.current && heldMs > 600 && (recorderRef.current || browserRef.current)) {
+      void stopAndTranscribe();
+    }
+    pressStartRef.current = 0;
+  };
+
+  const handleClear = () => {
+    setTranscribedText("");
+    setIgnored([]);
+    setResult(null);
   };
 
   const handleProceed = () => {
@@ -296,9 +327,12 @@ function RecordOrderContent() {
 
           <button
             type="button"
-            onClick={handleToggleRecording}
+            onPointerDown={handlePressStart}
+            onPointerUp={handlePressEnd}
+            onPointerLeave={handlePressEnd}
+            onContextMenu={(e) => e.preventDefault()}
             disabled={isProcessing}
-            className={`relative z-10 w-36 h-36 sm:w-40 sm:h-40 rounded-full flex flex-col items-center justify-center transition-all duration-300 shadow-xl active:scale-95 ${
+            className={`relative z-10 w-36 h-36 sm:w-40 sm:h-40 rounded-full flex flex-col items-center justify-center transition-all duration-300 shadow-xl active:scale-95 select-none touch-none ${
               isRecording
                 ? "bg-red-600 text-white ring-8 ring-red-200"
                 : "bg-gradient-to-br from-brand-primary to-brand-deep text-white ring-8 ring-emerald-100 hover:shadow-2xl"
@@ -345,13 +379,11 @@ function RecordOrderContent() {
             ></span>
             <span>{isRecording ? t.recordingActive : t.tapToSpeak}</span>
           </div>
-          {isRecording && (
-            <p className="text-[11px] text-slate-500 font-medium mt-2">
-              {language === "mr"
-                ? "फोन तोंडापासून एका हाताच्या अंतरावर धरा. बोलून झाल्यावर थांबवा दाबा."
-                : "Hold the phone about a hand's length away. Tap stop when you finish."}
-            </p>
-          )}
+          <p className="text-[11px] text-slate-500 font-medium mt-2 max-w-xs mx-auto">
+            {language === "mr"
+              ? "माइक दाबून ठेवा, एक-एक वस्तू बोला आणि सोडा. फोन तोंडाजवळ धरा म्हणजे आजूबाजूचे बोलणे येणार नाही."
+              : "Press and hold the mic, say the items, then let go. Keep the phone close to your mouth so nearby talk is not picked up."}
+          </p>
         </div>
 
         {errorCode && (
@@ -367,6 +399,15 @@ function RecordOrderContent() {
             <span className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-brand-primary" />
               <span>{t.transcribedSpeechText}</span>
+              {transcribedText && !isRecording && !isProcessing && (
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="ml-1 px-2 py-0.5 rounded-md border border-slate-200 text-[10px] text-slate-500 hover:bg-slate-50"
+                >
+                  {language === "mr" ? "साफ करा" : "Clear"}
+                </button>
+              )}
             </span>
             {result?.provider === "mock" && (
               <span className="px-2 py-0.5 rounded-md text-[10px] text-slate-600 bg-slate-100">
@@ -397,6 +438,27 @@ function RecordOrderContent() {
                 : "bg-slate-50 border-slate-200 text-slate-400"
             }`}
           />
+
+          {ignored.length > 0 && !isRecording && (
+            <div className="text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5">
+              <p>
+                {language === "mr"
+                  ? "ऑर्डरशी संबंध नसलेले बोलणे (आजूबाजूचे लोक) वगळले:"
+                  : "Left out talk that is not part of the order (people nearby):"}
+              </p>
+              <p className="text-slate-500 font-normal">{ignored.join(" · ")}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setTranscribedText((prev) => [prev.trim(), ...ignored].filter(Boolean).join("\n"));
+                  setIgnored([]);
+                }}
+                className="text-brand-primary hover:underline"
+              >
+                {language === "mr" ? "हे ऑर्डरमध्ये जोडा" : "Add this to the order"}
+              </button>
+            </div>
+          )}
 
           {result?.needsReview && (
             <div className="text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5 space-y-1">

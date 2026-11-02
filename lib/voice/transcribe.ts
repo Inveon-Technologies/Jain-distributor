@@ -18,6 +18,8 @@ export interface TranscribeResult {
   language: string;
   items: TranscribeItem[];
   unparsed: string[];
+  /** Background talk with no product, unit or number word; left out of formattedText. */
+  ignored?: string[];
   summary: string;
   /** One item per line with digit quantities ("रवा 1 किलो"), shown in the editable box. */
   formattedText?: string;
