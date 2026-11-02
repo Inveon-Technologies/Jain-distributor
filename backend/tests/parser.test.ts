@@ -79,7 +79,7 @@ describe("parseOrderText", () => {
   });
 
   it("returns nothing for empty text", () => {
-    expect(parseOrderText("   ")).toEqual({ items: [], unparsed: [] });
+    expect(parseOrderText("   ")).toEqual({ items: [], unparsed: [], ignored: [] });
   });
 });
 
@@ -133,5 +133,27 @@ describe("spoken kirana orders without separators", () => {
     expect(text.split("\n").slice(0, 2)).toEqual(["रवा 1 किलो", "पिठीसाखर 1 किलो"]);
     expect(text).not.toMatch(/[,.।]/);
     expect(parseOrderText(text).items).toEqual(parsed.items);
+  });
+});
+
+describe("background conversation", () => {
+  it("keeps order items and sets aside talk from people nearby", () => {
+    const result = parseOrderText("दहा किलो रवा अरे तू कधी आलास पाच किलो साखर काय चाललंय दोन मिनिटात येतो चार साबण");
+    expect(result.items.map((i) => [i.name, i.quantity, i.unitCode])).toEqual([
+      ["रवा", 10, "KG"],
+      ["साखर", 5, "KG"],
+      ["साबण", 4, "PIECE"],
+    ]);
+    expect(result.ignored).toEqual(["अरे तू कधी आलास", "काय चाललंय", "दोन मिनिटात येतो"]);
+    expect(formatOrderText(result)).toBe("रवा 10 किलो\nसाखर 5 किलो\nसाबण 4 नग");
+  });
+
+  it("keeps one describing word in front of a known product", () => {
+    expect(parseOrderText("दोन किलो बारीक रवा").items[0].name).toBe("बारीक रवा");
+  });
+
+  it("still accepts an unknown product when a unit was spoken", () => {
+    expect(parseOrderText("दोन किलो पोहा मसाला").items[0]).toMatchObject({ quantity: 2, unitCode: "KG" });
+    expect(parseOrderText("तीन किलो नवीनवस्तू").items[0]).toMatchObject({ name: "नवीनवस्तू", quantity: 3 });
   });
 });

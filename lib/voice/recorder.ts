@@ -5,7 +5,8 @@
  * 2. A Web Audio chain removes rumble below 90 Hz (fans, traffic, handling noise) and content above
  *    7.6 kHz (hiss, and anything that would alias when downsampling), then evens out loud and soft
  *    syllables with a gentle compressor.
- * 3. On stop, leading/trailing silence is trimmed, the level is normalised and the audio is encoded
+ * 3. On stop, leading/trailing silence is trimmed, quieter far-away voices are turned down (see
+ *    `gateDistantSpeech`), the level is normalised and the audio is encoded
  *    as 16 kHz mono 16-bit WAV, the lossless format Google recommends for best accuracy.
  */
 
@@ -149,7 +150,7 @@ export async function startRecording(onLevel?: (level: number) => void): Promise
       if (!trimmed) {
         throw new RecorderError("NO_SPEECH", "No speech was heard.");
       }
-      const pcm = resample(normalize(trimmed), inputRate, TARGET_SAMPLE_RATE);
+      const pcm = resample(normalize(gateDistantSpeech(trimmed, inputRate)), inputRate, TARGET_SAMPLE_RATE);
       return {
         blob: encodeWav(pcm, TARGET_SAMPLE_RATE),
         durationSeconds: pcm.length / TARGET_SAMPLE_RATE,
@@ -196,6 +197,43 @@ export function trimSilence(samples: Float32Array, rate: number): Float32Array |
   first = Math.max(0, first - pad);
   last = Math.min(frames - 1, last + pad);
   return samples.slice(first * frame, (last + 1) * frame);
+}
+
+/**
+ * The salesperson speaks close to the phone, so their voice is much louder than people talking a few
+ * metres away. Frames more than ~16 dB below the main speaker's level are turned down to 10%, with
+ * a short hold so the quiet ends of words are kept. This keeps background conversation from being
+ * recognised as part of the order.
+ */
+export function gateDistantSpeech(samples: Float32Array, rate: number): Float32Array {
+  const frame = Math.max(1, Math.round(rate * 0.02));
+  const frames = Math.floor(samples.length / frame);
+  if (frames < 10) return samples;
+  const rms: number[] = [];
+  for (let f = 0; f < frames; f++) {
+    let sum = 0;
+    for (let i = f * frame; i < (f + 1) * frame; i++) sum += samples[i] * samples[i];
+    rms.push(Math.sqrt(sum / frame));
+  }
+  // The main speaker's level: loud frames, ignoring the very loudest (clicks, bumps).
+  const sorted = [...rms].sort((a, b) => a - b);
+  const speech = sorted[Math.floor(sorted.length * 0.9)];
+  const threshold = speech * 0.16;
+  const holdFrames = Math.round(0.2 / 0.02);
+  const out = new Float32Array(samples.length);
+  out.set(samples);
+  let hold = 0;
+  let gain = 1;
+  for (let f = 0; f < frames; f++) {
+    hold = rms[f] >= threshold ? holdFrames : Math.max(0, hold - 1);
+    const target = hold > 0 ? 1 : 0.1;
+    for (let i = f * frame; i < (f + 1) * frame; i++) {
+      // Smooth the gain change over a frame to avoid clicks.
+      gain += (target - gain) * 0.01;
+      out[i] = samples[i] * gain;
+    }
+  }
+  return out;
 }
 
 /** Scales the recording so its peak sits at about -1 dBFS, with at most 20x gain. */
