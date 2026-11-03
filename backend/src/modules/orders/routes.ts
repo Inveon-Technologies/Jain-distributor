@@ -6,7 +6,10 @@ import { idParams, isoDate, pageMeta, pagination, uuid } from "../../lib/schemas
 import { businessDayRange } from "../../lib/time.js";
 import { parse } from "../../lib/validate.js";
 import { authenticate, currentUser, requireAdmin, requireRole, type AuthUser } from "../../middleware/auth.js";
-import { parseOrderText } from "../voice/parser.js";
+import { invalidateItemCatalog, itemMatcher, withSuggestions } from "../items/catalog.js";
+import { marathiSynonyms } from "../items/synonyms.js";
+import { isDevanagari } from "../voice/phonetic.js";
+import { isPriceToken, parseOrderText, sizeOf } from "../voice/parser.js";
 
 export const ordersRouter = Router();
 ordersRouter.use(authenticate);
@@ -19,6 +22,15 @@ const item = z.object({
   quantity: z.number().positive().max(1_000_000),
   unit: z.string().trim().min(1).max(50),
   unitCode: z.string().trim().max(20).optional(),
+  /** Item Master entry this line is for. */
+  itemId: uuid.optional().nullable(),
+  itemName: z.string().trim().max(200).optional().nullable(),
+  itemUnit: z.string().trim().max(50).optional().nullable(),
+  /**
+   * The salesperson chose this item by hand on the review screen: the spoken name is saved as an
+   * alias of the item so it is suggested first next time. Not stored on the order.
+   */
+  itemPicked: z.boolean().optional(),
 });
 
 const createBody = z.object({
@@ -85,7 +97,15 @@ ordersRouter.post("/", requireRole("SALESPERSON"), async (req, res) => {
   if (!shop.rows[0]) throw badRequest("Shop does not exist");
   const villageId = shop.rows[0].villageId;
 
-  const items = body.items ?? parseOrderText(body.transcribedText).items;
+  let items: z.infer<typeof item>[];
+  if (body.items) items = body.items;
+  else {
+    const matcher = await itemMatcher();
+    items = withSuggestions(parseOrderText(body.transcribedText, { isKnownWord: matcher.isKnownWord }).items, matcher)
+      .map(({ suggestions: _suggestions, ...rest }) => rest);
+  }
+  const learned = items.filter((i) => i.itemPicked && i.itemId).map((i) => ({ itemId: i.itemId!, alias: aliasOf(i.name) }));
+  items = items.map(({ itemPicked: _picked, ...rest }) => rest);
   if (!items.length) {
     throw badRequest("No items could be read from the order. Please edit the text or re-record.");
   }
@@ -100,11 +120,30 @@ ordersRouter.post("/", requireRole("SALESPERSON"), async (req, res) => {
       `INSERT INTO visits (salesperson_id, village_id, shop_id, order_id) VALUES ($1, $2, $3, $4)`,
       [user.id, villageId, body.shopId, rows[0].id],
     );
+    for (const { itemId, alias } of learned) {
+      if (!alias) continue;
+      await client.query(
+        `UPDATE items SET aliases = array_append(aliases, $2), updated_at = now()
+          WHERE id = $1 AND deleted_at IS NULL AND NOT ($2 = ANY(aliases)) AND cardinality(aliases) < 30
+            AND lower(coalesce(marathi_name, '')) <> lower($2)`,
+        [itemId, alias],
+      );
+    }
     return rows[0].id;
   });
+  if (learned.length) invalidateItemCatalog();
 
   res.status(201).json({ data: await getOrder(orderId, user) });
 });
+
+/** "पार्ले जी ₹10" → "पार्ले जी": the spoken product words, without price or pack size, as an item alias. */
+function aliasOf(name: string): string | undefined {
+  const words = name.split(/\s+/).filter((w) => w && !isPriceToken(w) && !sizeOf(w));
+  // Generic words alone ("साबण", "मोठा साबण") would send every soap to this one item.
+  if (words.every((w) => marathiSynonyms(w))) return undefined;
+  const alias = words.join(" ").slice(0, 100);
+  return alias.length > 1 && isDevanagari(alias) ? alias : undefined;
+}
 
 /** GET /orders – admins see everything; salespersons only their own orders. */
 ordersRouter.get("/", async (req, res) => {
@@ -174,7 +213,7 @@ ordersRouter.patch("/:id", requireAdmin, async (req, res) => {
        status = COALESCE($6, status),
        updated_at = now()
      WHERE id = $1`,
-    [id, b.transcribedText ?? null, b.items ? JSON.stringify(b.items) : null, b.notes !== undefined,
+    [id, b.transcribedText ?? null, b.items ? JSON.stringify(b.items.map(({ itemPicked: _p, ...rest }) => rest)) : null, b.notes !== undefined,
       b.notes ?? null, b.status ?? null],
   );
   res.json({ data: await getOrder(id, user) });

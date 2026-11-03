@@ -5,6 +5,8 @@ import { config } from "../../config.js";
 import { badRequest, HttpError } from "../../lib/errors.js";
 import { parse } from "../../lib/validate.js";
 import { authenticate } from "../../middleware/auth.js";
+import { itemMatcher, withSuggestions } from "../items/catalog.js";
+import type { ItemMatcher } from "../items/matcher.js";
 import { formatOrderText, parseOrderText, summarizeItems } from "./parser.js";
 import { activeSpeechProvider, createSpeechProvider, type SpeechProvider } from "./providers.js";
 
@@ -12,6 +14,13 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: config.MAX_AUDIO_MB * 1024 * 1024, files: 1 },
 });
+
+/** Parses the order with the Item Master's vocabulary and attaches item suggestions to each line. */
+function parseWithItems(text: string, matcher: ItemMatcher) {
+  const parsed = parseOrderText(text, { isKnownWord: matcher.isKnownWord });
+  const items = withSuggestions(parsed.items, matcher);
+  return { ...parsed, items, formattedText: formatOrderText(parsed), summary: summarizeItems(parsed.items) };
+}
 
 export function createVoiceRouter(provider: SpeechProvider = createSpeechProvider()) {
   const router = Router();
@@ -34,11 +43,15 @@ export function createVoiceRouter(provider: SpeechProvider = createSpeechProvide
       z.object({ sampleRate: z.coerce.number().int().min(8000).max(96000).optional() }),
       req.body ?? {},
     );
-    const result = await provider.transcribe(req.file.buffer, req.file.mimetype, { sampleRateHertz: sampleRate });
+    const matcher = await itemMatcher();
+    const result = await provider.transcribe(req.file.buffer, req.file.mimetype, {
+      sampleRateHertz: sampleRate,
+      extraPhrases: matcher.spokenPhrases(),
+    });
     if (!result.text) {
       throw new HttpError(422, "NO_SPEECH", "No speech was recognised. Move closer to the phone and speak again.");
     }
-    const parsed = parseOrderText(result.text);
+    const parsed = parseWithItems(result.text, matcher);
     res.json({
       data: {
         text: result.text,
@@ -53,17 +66,14 @@ export function createVoiceRouter(provider: SpeechProvider = createSpeechProvide
         provider: result.provider,
         language: config.STT_LANGUAGE,
         ...parsed,
-        formattedText: formatOrderText(parsed),
-        summary: summarizeItems(parsed.items),
       },
     });
   });
 
   /** POST /voice/parse { text } – re-parse after the salesperson edits the transcript (✏️ Edit). */
-  router.post("/parse", (req, res) => {
+  router.post("/parse", async (req, res) => {
     const { text } = parse(z.object({ text: z.string().trim().min(1).max(5000) }), req.body);
-    const parsed = parseOrderText(text);
-    res.json({ data: { text, ...parsed, formattedText: formatOrderText(parsed), summary: summarizeItems(parsed.items) } });
+    res.json({ data: { text, ...parseWithItems(text, await itemMatcher()) } });
   });
 
   return router;

@@ -8,6 +8,7 @@ import { logger } from "./lib/logger.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { authRouter } from "./modules/auth/routes.js";
 import { dashboardRouter } from "./modules/dashboard/routes.js";
+import { itemsRouter } from "./modules/items/routes.js";
 import { ordersRouter } from "./modules/orders/routes.js";
 import { salespersonsRouter } from "./modules/salespersons/routes.js";
 import { shopsRouter } from "./modules/shops/routes.js";
@@ -61,6 +62,7 @@ export function createApp(options: AppOptions = {}) {
   api.use("/salespersons", salespersonsRouter);
   api.use("/villages", villagesRouter);
   api.use("/shops", shopsRouter);
+  api.use("/items", itemsRouter);
   api.use("/orders", ordersRouter);
   api.use("/visits", visitsRouter);
   api.use("/dashboard", dashboardRouter);

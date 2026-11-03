@@ -42,6 +42,37 @@ export interface OrderItem {
   name: string;
   quantity: number;
   unit: string;
+  /** Item Master entry for this line ("PARLE G RS 10"), when one was matched or picked. */
+  itemId?: string;
+  itemName?: string;
+  itemUnit?: string;
+  /** The salesperson chose the item by hand; the server learns the spoken name as an alias. */
+  itemPicked?: boolean;
+}
+
+/** One product of the Item Master (admin → आयटम मास्टर). */
+export interface MasterItem {
+  id: string;
+  name: string;
+  marathiName: string | null;
+  aliases: string[];
+  unit: string;
+  packType: string;
+  packQty: number | null;
+  freeQty: number | null;
+  price: number | null;
+  status: 'ACTIVE' | 'INACTIVE';
+}
+
+/** An Item Master candidate for a spoken product name, best first. */
+export interface ItemSuggestion {
+  id: string;
+  name: string;
+  marathiName: string | null;
+  unit: string;
+  price: number | null;
+  /** 0–1: how closely the spoken words match the item. */
+  score: number;
 }
 
 export interface Order {

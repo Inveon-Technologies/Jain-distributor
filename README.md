@@ -89,6 +89,7 @@ Release notes: [`RELEASE_NOTES.md`](RELEASE_NOTES.md).
   * **Recent Voice Orders**: Live incoming orders with direct link to details.
 * **`/admin/orders`**: Full searchable and filterable orders table.
 * **`/admin/orders/[id]`**: Detailed order inspection displaying the **exact recorded Marathi voice transcript**, shop information, and salesperson information.
+* **`/admin/items`**: **Item Master** (आयटम मास्टर) with the distributor's ~4,000 products. Search in English or Marathi, add/edit items with a Marathi name and spoken aliases, import a pasted or uploaded list, and test how a spoken Marathi phrase is matched. Voice orders suggest items from this list on the review screen.
 * **`/admin/salespersons`**: Salesperson master management.
 * **`/admin/villages`**: Village territory management.
 * **`/admin/shops`**: Partner retailer shops directory with credit balance tracking.

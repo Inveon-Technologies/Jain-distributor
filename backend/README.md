@@ -111,12 +111,38 @@ Dates in query strings are `YYYY-MM-DD` in business time (IST).
 | POST | `/voice/parse` | any | `{ text }` → `{ items, unparsed, formattedText, summary }` after the transcript is edited. `formattedText` is one item per line with digit quantities ("रवा 1 किलो"). |
 
 Items look like `{ "name": "रवा", "nameEn": "Rava", "quantity": 10, "unit": "किलो (kg)", "unitCode": "KG" }`.
+Voice responses also carry Item Master matches for each line: `suggestions` (best first, with a
+0–1 `score`) and, when the best one is a confident match, `itemId`, `itemName` and `itemUnit`
+(`nameEn` is then the Item Master name). A spoken price is kept apart from the quantity
+("पार्ले जी दहा रुपये वीस पॅकेट" → `पार्ले जी ₹10`, 20 packets), and so is a pack size
+("शाम्पू शंभर मिली दोन नग" → `शाम्पू 100मिली`, 2 pieces).
+
+### Item Master
+
+The distributor's products as billed ("PARLE G RS 10", packing "PKT 30"), seeded from the shop's
+item list by `migrations/003_item_master_seed.sql`. Spoken Marathi names are matched to them by
+sound ("कोलगेट" ≈ COLGATE), Marathi meanings ("साबण" = SOAP), prices and pack sizes
+(`src/modules/items/matcher.ts`), plus the Marathi name and aliases set per item.
+
+| Method | Path | Role | Description |
+| --- | --- | --- | --- |
+| GET | `/items?q=&status=&page=&pageSize=` | any | A–Z. English `q` filters by name, Marathi name or alias; Devanagari `q` is matched by sound, best first. |
+| GET | `/items/suggest?q=&unitCode=&limit=` | any | Best Item Master matches for a spoken or typed name (`[{ id, name, marathiName, unit, price, score }]`). |
+| GET | `/items/:id` | any | |
+| POST | `/items` | admin | `{ name, marathiName?, aliases?, unit?, price?, status? }`. Name and packing are cleaned (`PACKET` → `PKT`); price defaults to "RS N" in the name. 409 when name + packing exists. |
+| PATCH / DELETE | `/items/:id` | admin | Delete is soft; past orders keep the item name. |
+| POST | `/items/import` | admin | `{ text }`: one item per line, `name<TAB>packing` (or `name,packing`). Adds new items, leaves existing ones; returns `{ read, added, alreadyInMaster, skippedCount, skipped }`. |
+
+When a salesperson picks an item by hand on the review screen (`itemPicked: true` on the order
+line), `POST /orders` saves the spoken name as an alias of that item, so it is suggested first
+next time. Generic words alone ("साबण") are not learned. Admins can remove aliases on the Item
+Master page.
 
 ### Orders
 
 | Method | Path | Role | Description |
 | --- | --- | --- | --- |
-| POST | `/orders` | salesperson | `{ shopId, transcribedText, items?, notes? }`. Items are read from the text when omitted. Also records a shop visit. |
+| POST | `/orders` | salesperson | `{ shopId, transcribedText, items?, notes? }`. Items are read from the text (and matched to the Item Master) when omitted; lines may carry `itemId`, `itemName`, `itemUnit`, `itemPicked`. Also records a shop visit. |
 | GET | `/orders?date=&from=&to=&salespersonId=&villageId=&shopId=&status=&q=&page=&pageSize=` | any | Salespersons only see their own. `q` searches transcript, shop, salesperson and `ORD-` number. |
 | GET | `/orders/:id` | any | Includes salesperson, village and shop details. |
 | PATCH | `/orders/:id` | admin | `{ transcribedText?, items?, notes?, status? }` (`CONFIRMED`, `DELIVERED`, `CANCELLED`). |
@@ -148,8 +174,9 @@ backend/
     config.ts          Validated environment
     db/                Pool, migration runner, bootstrap admin
     middleware/        Auth (JWT + role checks), error handling
-    modules/           auth, salespersons, villages, shops, orders, visits, dashboard, voice
+    modules/           auth, salespersons, villages, shops, orders, visits, dashboard, voice, items
+  scripts/             item-master-sql.ts: item list → seed migration
   tests/               Vitest unit and API tests
 ```
 
-Add a schema change by creating the next numbered file in `migrations/` (e.g. `002_products.sql`).
+Add a schema change by creating the next numbered file in `migrations/` (e.g. `004_products.sql`).

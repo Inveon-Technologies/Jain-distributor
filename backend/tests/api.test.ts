@@ -264,9 +264,93 @@ describe("voice", () => {
 
   it("re-parses edited text", async () => {
     const res = await api().post("/api/v1/voice/parse").set(auth(sales)).send({ text: "पाच किलो साखर" });
-    expect(res.body.data.items).toEqual([
-      { name: "साखर", nameEn: "Sugar", quantity: 5, unit: "किलो (kg)", unitCode: "KG" },
-    ]);
+    expect(res.body.data.items).toHaveLength(1);
+    expect(res.body.data.items[0]).toMatchObject({ name: "साखर", quantity: 5, unit: "किलो (kg)", unitCode: "KG" });
+    expect(Array.isArray(res.body.data.items[0].suggestions)).toBe(true);
+  });
+
+  it("matches spoken Marathi to Item Master items, reading the price apart from the quantity", async () => {
+    const res = await api()
+      .post("/api/v1/voice/parse")
+      .set(auth(sales))
+      .send({ text: "पार्ले जी दहा रुपये वीस पॅकेट आणि चार निव्हिया क्रीम" });
+    const [parle, nivea] = res.body.data.items;
+    expect(parle).toMatchObject({ name: "पार्ले जी ₹10", quantity: 20, unitCode: "PACKET", itemName: "PARLE G RS 10" });
+    expect(parle.itemId).toBe(parle.suggestions[0].id);
+    expect(parle.nameEn).toBe("PARLE G RS 10");
+    expect(nivea).toMatchObject({ name: "निव्हिया क्रीम", quantity: 4 });
+    expect(nivea.itemName).toMatch(/^NIVEA CREAM/);
+  });
+});
+
+describe("item master", () => {
+  it("is loaded with the distributor's item list", async () => {
+    const res = await api().get("/api/v1/items").set(auth(admin)).query({ pageSize: 5 });
+    expect(res.status).toBe(200);
+    expect(res.body.meta.total).toBe(3996);
+    expect(res.body.data[0]).toMatchObject({ name: "2 LOVE MR KING RS 20", unit: "JAR 15", packType: "JAR", packQty: 15, price: 20 });
+  });
+
+  it("searches by English name, and by sound for Marathi", async () => {
+    const en = await api().get("/api/v1/items").set(auth(sales)).query({ q: "parle g" });
+    expect(en.body.data.length).toBeGreaterThan(0);
+    expect(en.body.data.every((i: { name: string }) => i.name.includes("PARLE G"))).toBe(true);
+
+    const mr = await api().get("/api/v1/items").set(auth(sales)).query({ q: "कोलगेट पेस्ट ₹20" });
+    expect(mr.body.data[0].name).toBe("COLGATE PASTE RS 20");
+
+    const suggest = await api().get("/api/v1/items/suggest").set(auth(sales)).query({ q: "डेटॉल साबण" });
+    expect(suggest.body.data[0].name).toMatch(/^DETTOL SOAP/);
+  });
+
+  let itemId: string;
+  it("admins add, edit and remove items; salespersons cannot", async () => {
+    const denied = await api().post("/api/v1/items").set(auth(sales)).send({ name: "TEST ITEM" });
+    expect(denied.status).toBe(403);
+
+    const created = await api()
+      .post("/api/v1/items")
+      .set(auth(admin))
+      .send({ name: "  shree  ganesh  agarbatti rs : 25 ", unit: "packet 12", marathiName: "श्री गणेश अगरबत्ती" });
+    expect(created.status).toBe(201);
+    expect(created.body.data).toMatchObject({
+      name: "SHREE GANESH AGARBATTI RS 25",
+      unit: "PKT 12",
+      packType: "PKT",
+      packQty: 12,
+      price: 25,
+      marathiName: "श्री गणेश अगरबत्ती",
+      aliases: [],
+    });
+    itemId = created.body.data.id;
+
+    const dup = await api().post("/api/v1/items").set(auth(admin)).send({ name: "SHREE GANESH AGARBATTI RS 25", unit: "PKT 12" });
+    expect(dup.status).toBe(409);
+
+    const edited = await api()
+      .patch(`/api/v1/items/${itemId}`)
+      .set(auth(admin))
+      .send({ aliases: ["गणेश उदबत्ती", "गणेश उदबत्ती"], price: 30 });
+    expect(edited.body.data).toMatchObject({ aliases: ["गणेश उदबत्ती"], price: 30, unit: "PKT 12" });
+
+    // The new alias is used for matching straight away.
+    const suggest = await api().get("/api/v1/items/suggest").set(auth(sales)).query({ q: "गणेश उदबत्ती" });
+    expect(suggest.body.data[0].id).toBe(itemId);
+  });
+
+  it("imports a pasted list, skipping items already in the master", async () => {
+    const text = "item_name\titem_size\nPARLE G RS 10\tPCS\nNEW  BRAND SOAP RS 12\tPACKET 6\nNEW BRAND SOAP RS 12\tPKT 6\n\tPCS\n";
+    const res = await api().post("/api/v1/items/import").set(auth(admin)).send({ text });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ read: 2, added: 1, alreadyInMaster: 1, skippedCount: 3 });
+    const found = await api().get("/api/v1/items").set(auth(admin)).query({ q: "NEW BRAND SOAP" });
+    expect(found.body.data).toHaveLength(1);
+    expect(found.body.data[0]).toMatchObject({ unit: "PKT 6", packQty: 6, price: 12 });
+  });
+
+  it("deletes items softly", async () => {
+    expect((await api().delete(`/api/v1/items/${itemId}`).set(auth(admin))).status).toBe(204);
+    expect((await api().get(`/api/v1/items/${itemId}`).set(auth(admin))).status).toBe(404);
   });
 });
 
@@ -360,6 +444,19 @@ describe("orders, visits and dashboard", () => {
 
     const visits = await api().get("/api/v1/visits").set(auth(admin));
     expect(visits.body.data).toHaveLength(3);
+  });
+
+  it("learns the spoken name when the salesperson picks an item by hand", async () => {
+    const pick = await api().get("/api/v1/items/suggest").set(auth(sales)).query({ q: "हिमालया बेबी साबण" });
+    const target = pick.body.data[0];
+    const items = [{ name: "बाळू साबण", quantity: 2, unit: "नग (Piece)", itemId: target.id, itemName: target.name, itemPicked: true }];
+    const res = await api().post("/api/v1/orders").set(auth(sales)).send({ shopId, transcribedText: "दोन बाळू साबण", items });
+    expect(res.status).toBe(201);
+    expect(res.body.data.items).toEqual([{ name: "बाळू साबण", quantity: 2, unit: "नग (Piece)", itemId: target.id, itemName: target.name }]);
+    const item = await api().get(`/api/v1/items/${target.id}`).set(auth(admin));
+    expect(item.body.data.aliases).toContain("बाळू साबण");
+    const again = await api().get("/api/v1/items/suggest").set(auth(sales)).query({ q: "बाळू साबण" });
+    expect(again.body.data[0].id).toBe(target.id);
   });
 
   it("deleting a village hides it and its shops but keeps orders", async () => {

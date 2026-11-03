@@ -13,6 +13,7 @@ import {
   MapPin,
   Store,
   ClipboardList,
+  Package,
   Menu,
   X,
   LogOut,
@@ -60,6 +61,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       href: "/admin/orders",
       label: t.orders,
       icon: ClipboardList,
+    },
+    {
+      href: "/admin/items",
+      label: t.itemMaster,
+      icon: Package,
     },
   ];
 
@@ -179,6 +185,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {pathname.includes("/admin/villages") && t.villages}
                 {pathname.includes("/admin/shops") && t.shops}
                 {pathname.includes("/admin/orders") && t.orders}
+                {pathname.includes("/admin/items") && t.itemMaster}
               </span>
             </div>
           </div>

@@ -19,6 +19,16 @@ export interface SpeechProvider {
 export interface TranscribeOptions {
   /** Sample rate reported by the browser's AudioContext; Opus recordings default to 48 kHz. */
   sampleRateHertz?: number;
+  /**
+   * Item Master names and aliases in Marathi ("पार्ले जी"), added to the recogniser's hints for this
+   * request. Ignored when hints are turned off (STT_PHRASE_BOOST=0).
+   */
+  extraPhrases?: string[];
+}
+
+/** Devanagari phrases only, at most 100 characters (Google's limit), de-duplicated. */
+function hintPhrases(phrases: string[] = [], limit: number): string[] {
+  return [...new Set(phrases.map((p) => p.trim()).filter((p) => p && p.length <= 100 && /[ऀ-ॿ]/.test(p)))].slice(0, limit);
 }
 
 /**
@@ -133,7 +143,7 @@ export class GoogleSpeechProvider implements SpeechProvider {
       ...(this.options.alternativeLanguageCodes?.length
         ? { alternativeLanguageCodes: this.options.alternativeLanguageCodes }
         : {}),
-      ...(this.options.speechContexts?.length ? { speechContexts: this.options.speechContexts } : {}),
+      ...(this.options.speechContexts?.length ? { speechContexts: this.withItemPhrases(options.extraPhrases) } : {}),
     };
     const content = audio.toString("base64");
 
@@ -163,6 +173,13 @@ export class GoogleSpeechProvider implements SpeechProvider {
       lowConfidenceWords: [...new Set(lowConfidenceWords)],
       provider: this.name,
     };
+  }
+
+  /** The configured hints plus this request's Item Master phrases, with the product boost. */
+  private withItemPhrases(extra?: string[]): SpeechContext[] {
+    const contexts = this.options.speechContexts ?? [];
+    const phrases = hintPhrases(extra, 1000);
+    return phrases.length && contexts[0] ? [...contexts, { phrases, boost: contexts[0].boost }] : contexts;
   }
 
   private recognize(body: unknown): Promise<Response> {
@@ -217,8 +234,10 @@ export class ElevenLabsSpeechProvider implements SpeechProvider {
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
-  async transcribe(audio: Buffer, mimeType: string): Promise<Transcription> {
-    const keyterms = this.options.keyterms ?? [];
+  async transcribe(audio: Buffer, mimeType: string, options: TranscribeOptions = {}): Promise<Transcription> {
+    const base = this.options.keyterms ?? [];
+    // Item Master phrases first; the batch API takes at most 1000 keyterms.
+    const keyterms = base.length ? [...new Set([...hintPhrases(options.extraPhrases, 500), ...base])].slice(0, 1000) : base;
     let res = await this.request(audio, mimeType, keyterms);
     if ((res.status === 400 || res.status === 422) && keyterms.length) {
       res = await this.request(audio, mimeType, []);
