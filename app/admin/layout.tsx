@@ -7,6 +7,7 @@ import { translations } from "@/data/translations";
 import { Logo } from "@/components/common/Logo";
 import { LanguageToggle } from "@/components/common/LanguageToggle";
 import { useRequireRole } from "@/components/common/useRequireRole";
+import { NotificationBell } from "@/components/admin/NotificationBell";
 import {
   LayoutDashboard,
   Users,
@@ -17,7 +18,6 @@ import {
   Menu,
   X,
   LogOut,
-  Bell,
   ShieldCheck,
   ChevronRight,
 } from "lucide-react";
@@ -194,11 +194,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-3 sm:gap-5">
             <LanguageToggle />
 
-            {/* Notification Icon */}
-            <div className="relative p-2 text-slate-500 hover:text-slate-800 rounded-xl hover:bg-slate-50 cursor-pointer transition">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full"></span>
-            </div>
+            {/* Notifications: new orders and sign-ups waiting for approval */}
+            <NotificationBell />
 
             {/* Admin Badge */}
             <div className="flex items-center gap-2 pl-1 border-l border-slate-100">

@@ -530,3 +530,27 @@ describe("orders, visits and dashboard", () => {
     expect((await api().get(`/api/v1/orders/${orderId}`).set(auth(admin))).status).toBe(200);
   });
 });
+
+describe("notifications", () => {
+  it("lists new orders and pending sign-ups for admins only", async () => {
+    const reg = await api()
+      .post("/api/v1/auth/register")
+      .send({ name: "नवीन", nameEn: "Navin", email: "navin@jain.com", mobile: "9000022222", password: "secret1" });
+    expect(reg.status).toBe(201);
+
+    const res = await api().get("/api/v1/notifications").set(auth(admin));
+    expect(res.status).toBe(200);
+    const types = res.body.data.map((n: { type: string }) => n.type);
+    expect(types).toContain("NEW_ORDER");
+    expect(res.body.data).toContainEqual(
+      expect.objectContaining({ type: "SIGNUP", id: reg.body.user.id, data: expect.objectContaining({ nameEn: "Navin" }) }),
+    );
+    const order = res.body.data.find((n: { type: string }) => n.type === "NEW_ORDER");
+    expect(order.data).toMatchObject({ orderNumber: expect.any(Number), shopName: expect.any(String) });
+    // Newest first.
+    const times = res.body.data.map((n: { createdAt: string }) => Date.parse(n.createdAt));
+    expect([...times].sort((a, b) => b - a)).toEqual(times);
+
+    expect((await api().get("/api/v1/notifications").set(auth(sales))).status).toBe(403);
+  });
+});
