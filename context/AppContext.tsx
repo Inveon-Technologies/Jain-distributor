@@ -42,7 +42,7 @@ interface AppContextType {
   /** True while the first data load after login is running. */
   loading: boolean;
   currentUser: CurrentUser | null;
-  login: (email: string, pass: string) => Promise<Result & { role?: UserRole }>;
+  login: (emailOrMobile: string, pass: string) => Promise<Result & { role?: UserRole }>;
   registerSalesperson: (data: { name: string; nameEn?: string; email: string; mobile: string; password: string }) => Promise<Result & { pendingApproval?: boolean }>;
   logout: () => void;
   refresh: () => Promise<void>;
@@ -213,11 +213,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (currentUser) await loadAll(currentUser.role);
   }, [currentUser, loadAll]);
 
-  const login = async (email: string, pass: string) => {
+  /** `id` is an email or a mobile number. */
+  const login = async (id: string, pass: string) => {
+    const value = id.trim();
     try {
       const { token, user } = await apiFetch<{ token: string; user: ApiUser }>("/auth/login", {
         method: "POST",
-        body: { email: email.trim().toLowerCase(), password: pass },
+        body: { login: value.includes("@") ? value.toLowerCase() : value, password: pass },
       });
       setAuthToken(token);
       const u = toCurrentUser(user);

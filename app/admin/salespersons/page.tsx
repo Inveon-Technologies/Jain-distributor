@@ -6,7 +6,7 @@ import { translations } from "@/data/translations";
 import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
 import { Salesperson } from "@/data/types";
-import { Users, Phone, Mail, CheckCircle2, Plus, X, UserPlus, Check, Trash2, Eye, EyeOff, Clock, Pencil } from "lucide-react";
+import { Users, Phone, Mail, CheckCircle2, Plus, X, UserPlus, Check, Trash2, Eye, EyeOff, Clock, Pencil, KeyRound } from "lucide-react";
 
 export default function AdminSalespersonsPage() {
   const { language, salespersons, villages, addSalesperson, updateSalesperson, deleteSalesperson, toggleSalespersonStatus, resetSalespersonPassword } = useApp();
@@ -29,6 +29,40 @@ export default function AdminSalespersonsPage() {
   const [editPassword, setEditPassword] = useState("");
   const [editAssignedVillage, setEditAssignedVillage] = useState("");
   const [editStatus, setEditStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
+
+  // Admin sets a new password for a salesperson (they cannot reset it themselves).
+  const [spToReset, setSpToReset] = useState<Salesperson | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetError, setResetError] = useState("");
+  const [resetSaving, setResetSaving] = useState(false);
+  const [resetDoneFor, setResetDoneFor] = useState<string | null>(null);
+
+  const openResetModal = (sp: Salesperson) => {
+    setSpToReset(sp);
+    setResetPassword("");
+    setShowResetPassword(true);
+    setResetError("");
+    setResetDoneFor(null);
+  };
+
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!spToReset) return;
+    const value = resetPassword.trim();
+    if (value.length < 6) {
+      setResetError(language === "mr" ? "पासवर्ड किमान 6 अक्षरांचा हवा." : "Password must be at least 6 characters.");
+      return;
+    }
+    setResetSaving(true);
+    const res = await resetSalespersonPassword(spToReset.id, value);
+    setResetSaving(false);
+    if (!res.success) {
+      setResetError(res.error || (language === "mr" ? "पासवर्ड बदलता आला नाही." : "Could not change the password."));
+      return;
+    }
+    setResetDoneFor(spToReset.id);
+  };
 
   const openEditModal = (sp: Salesperson) => {
     setSpToEdit(sp);
@@ -155,6 +189,16 @@ export default function AdminSalespersonsPage() {
                     className="p-1.5 text-slate-400 hover:text-brand-primary hover:bg-emerald-50 rounded-xl transition cursor-pointer"
                   >
                     <Pencil className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => openResetModal(sp)}
+                    title={language === "mr" ? "पासवर्ड बदला" : "Change password"}
+                    aria-label={language === "mr" ? "पासवर्ड बदला" : "Change password"}
+                    className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition cursor-pointer"
+                  >
+                    <KeyRound className="w-4 h-4" />
                   </button>
 
                   <button
@@ -597,6 +641,98 @@ export default function AdminSalespersonsPage() {
                 {t.deleteConfirmBtn}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {spToReset && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-slate-900">
+                    {language === "mr" ? "पासवर्ड बदला" : "Change password"}
+                  </h3>
+                  <span className="text-xs text-slate-600 font-medium block truncate">
+                    <BilingualName mr={spToReset.name} en={spToReset.nameEn} className="font-bold text-slate-800" />
+                  </span>
+                  <span className="text-[11px] text-slate-400 block truncate">{spToReset.mobile}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSpToReset(null)}
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {resetDoneFor === spToReset.id ? (
+              <div className="space-y-3">
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
+                  {language === "mr"
+                    ? "नवीन पासवर्ड सेट झाला. हा पासवर्ड सेल्सपर्सनला सांगा; ते मोबाईल नंबर आणि हा पासवर्ड वापरून लॉगिन करतील."
+                    : "New password set. Share it with the salesperson; they log in with their mobile number and this password."}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSpToReset(null)}
+                  className="w-full py-2 px-3 rounded-xl bg-brand-primary text-white font-bold text-xs cursor-pointer"
+                >
+                  {language === "mr" ? "ठीक आहे" : "Done"}
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleResetSubmit} className="space-y-3">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  {language === "mr" ? "नवीन पासवर्ड" : "New password"} *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showResetPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    autoFocus
+                    value={resetPassword}
+                    onChange={(e) => {
+                      setResetPassword(e.target.value);
+                      setResetError("");
+                    }}
+                    placeholder={language === "mr" ? "किमान 6 अक्षरे" : "At least 6 characters"}
+                    className="w-full px-4 pr-10 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {resetError && <p className="text-xs font-semibold text-red-600">{resetError}</p>}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setSpToReset(null)}
+                    className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 cursor-pointer"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resetSaving}
+                    className="flex-1 py-2 px-3 rounded-xl bg-brand-primary hover:bg-brand-deep disabled:opacity-60 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                  >
+                    {language === "mr" ? "पासवर्ड सेट करा" : "Set password"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

@@ -7,6 +7,7 @@ import { badRequest, conflict, unauthorized } from "../../lib/errors.js";
 import { mobile, password } from "../../lib/schemas.js";
 import { parse } from "../../lib/validate.js";
 import { authenticate, currentUser, signToken, type Role } from "../../middleware/auth.js";
+import { assertMobileFree, looksLikeMobile, usersWithMobile } from "./mobile.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
 
 export const authRouter = Router();
@@ -19,10 +20,15 @@ const loginLimiter = rateLimit({
   message: { error: { code: "TOO_MANY_REQUESTS", message: "Too many attempts, please try again later" } },
 });
 
-const loginBody = z.object({
-  email: z.string().trim().toLowerCase().email(),
-  password: z.string().min(1),
-});
+/** `login` is an email or a mobile number; `email` and `mobile` are accepted for older clients. */
+const loginBody = z
+  .object({
+    login: z.string().trim().min(1).max(200).optional(),
+    email: z.string().trim().min(1).max(200).optional(),
+    mobile: z.string().trim().min(1).max(30).optional(),
+    password: z.string().min(1),
+  })
+  .refine((b) => b.login || b.email || b.mobile, { message: "Enter your email or mobile number", path: ["login"] });
 
 const registerBody = z.object({
   name: z.string().trim().min(2).max(100),
@@ -67,17 +73,32 @@ async function loadProfile(userId: string) {
   return { ...user, assignedVillages: villages };
 }
 
-/** POST /auth/login – email + password for both admins and salespersons. */
+/** POST /auth/login – email or mobile number + password, for both admins and salespersons. */
 authRouter.post("/login", loginLimiter, async (req, res) => {
-  const { email, password: plain } = parse(loginBody, req.body);
+  const body = parse(loginBody, req.body);
+  const id = (body.login ?? body.email ?? body.mobile)!.trim();
+  const byMobile = looksLikeMobile(id);
+  if (!byMobile && !z.string().email().safeParse(id).success) {
+    throw badRequest("Enter a valid email or mobile number");
+  }
+
+  const ids = byMobile ? await usersWithMobile(id) : [];
   const { rows } = await pool.query<UserRow & { passwordHash: string }>(
     `SELECT ${USER_COLUMNS}, password_hash AS "passwordHash"
-       FROM users WHERE lower(email) = $1 AND deleted_at IS NULL`,
-    [email],
+       FROM users
+      WHERE deleted_at IS NULL AND (${byMobile ? "id = ANY($1::uuid[])" : "lower(email) = lower($1)"})`,
+    [byMobile ? ids : id],
   );
-  const user = rows[0];
-  if (!user || !(await verifyPassword(plain, user.passwordHash))) {
-    throw unauthorized("Invalid email or password", "INVALID_CREDENTIALS");
+  // Older data may have two accounts on one number; the password decides which one it is.
+  let user: (typeof rows)[number] | undefined;
+  for (const row of rows) {
+    if (await verifyPassword(body.password, row.passwordHash)) {
+      user = row;
+      break;
+    }
+  }
+  if (!user) {
+    throw unauthorized("Invalid email/mobile number or password", "INVALID_CREDENTIALS");
   }
   if (user.status !== "ACTIVE") {
     throw unauthorized("Account is inactive or pending admin approval", "ACCOUNT_INACTIVE");
@@ -91,6 +112,7 @@ authRouter.post("/register", loginLimiter, async (req, res) => {
   const body = parse(registerBody, req.body);
   const existing = await pool.query("SELECT 1 FROM users WHERE lower(email) = $1 AND deleted_at IS NULL", [body.email]);
   if (existing.rowCount) throw conflict("An account with this email already exists");
+  await assertMobileFree(body.mobile);
 
   const { rows } = await pool.query<UserRow>(
     `INSERT INTO users (name, name_en, email, mobile, password_hash, role, status)

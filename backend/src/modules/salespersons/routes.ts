@@ -7,6 +7,7 @@ import { idParams, isoDate, mobile, password, status, uuid } from "../../lib/sch
 import { businessDayRange } from "../../lib/time.js";
 import { parse } from "../../lib/validate.js";
 import { authenticate, requireAdmin } from "../../middleware/auth.js";
+import { assertMobileFree } from "../auth/mobile.js";
 import { hashPassword } from "../auth/passwords.js";
 
 export const salespersonsRouter = Router();
@@ -100,6 +101,7 @@ salespersonsRouter.get("/", async (req, res) => {
 salespersonsRouter.post("/", async (req, res) => {
   const body = parse(createBody, req.body);
   await assertEmailFree(body.email);
+  await assertMobileFree(body.mobile);
   const passwordHash = await hashPassword(body.password);
   const id = await withTransaction(async (client) => {
     const { rows } = await client.query<{ id: string }>(
@@ -123,6 +125,7 @@ salespersonsRouter.patch("/:id", async (req, res) => {
   const body = parse(updateBody, req.body);
   await getSalesperson(id);
   if (body.email) await assertEmailFree(body.email, id);
+  if (body.mobile) await assertMobileFree(body.mobile, id);
 
   await withTransaction(async (client) => {
     await client.query(

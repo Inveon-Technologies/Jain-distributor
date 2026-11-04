@@ -43,9 +43,14 @@ describe("auth", () => {
   });
 
   it("validates the login body", async () => {
-    const res = await api().post("/api/v1/auth/login").send({ email: "not-an-email" });
+    const res = await api().post("/api/v1/auth/login").send({});
     expect(res.status).toBe(400);
-    expect(res.body.error.details.map((d: { path: string }) => d.path)).toEqual(["email", "password"]);
+    expect(res.body.error.details.map((d: { path: string }) => d.path)).toEqual(["password"]);
+    const noId = await api().post("/api/v1/auth/login").send({ password: "x" });
+    expect(noId.body.error.details.map((d: { path: string }) => d.path)).toEqual(["login"]);
+
+    const bad = await api().post("/api/v1/auth/login").send({ login: "not-an-email", password: "x" });
+    expect(bad.status).toBe(400);
   });
 
   it("returns the admin profile", async () => {
@@ -74,6 +79,26 @@ describe("auth", () => {
       .send({ status: "ACTIVE" });
     expect(activate.body.data.status).toBe("ACTIVE");
     otherSales = await login("sachin@jain.com", "secret1");
+
+    // The same account by mobile number, written any common way.
+    for (const id of ["9000011111", "+91 90000 11111", "09000011111", "+91-90000-11111"]) {
+      const res = await api().post("/api/v1/auth/login").send({ login: id, password: "secret1" });
+      expect(res.status, id).toBe(200);
+      expect(res.body.user.email).toBe("sachin@jain.com");
+    }
+    const wrongPass = await api().post("/api/v1/auth/login").send({ login: "9000011111", password: "nope" });
+    expect(wrongPass.body.error.code).toBe("INVALID_CREDENTIALS");
+    const unknown = await api().post("/api/v1/auth/login").send({ login: "9111111111", password: "secret1" });
+    expect(unknown.body.error.code).toBe("INVALID_CREDENTIALS");
+    // Older clients that still send `email`.
+    expect((await api().post("/api/v1/auth/login").send({ email: "Sachin@Jain.com", password: "secret1" })).status).toBe(200);
+
+    // A mobile number can belong to only one account.
+    const sameMobile = await api()
+      .post("/api/v1/salespersons")
+      .set(auth(admin))
+      .send({ name: "Other", email: "other@jain.com", mobile: "+919000011111", password: "secret1" });
+    expect(sameMobile.status).toBe(409);
   });
 });
 
