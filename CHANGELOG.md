@@ -7,6 +7,14 @@ notes when the matching `vx.y.z` tag is pushed.
 
 ## [Unreleased]
 
+### Fixed
+
+- The admin notification bell was only a picture with a dot that never changed. It now lists new
+  voice orders and salesperson sign-ups waiting for approval from the last 3 days, shows an unread
+  count, checks for new ones every 30 seconds, plays a short chime and refreshes the dashboard
+  when an order arrives, and can show a phone/desktop alert when the app is in the background.
+  New endpoint: `GET /api/v1/notifications` (admin only).
+
 ### Added
 
 - Log in with a mobile number as well as an email. Any common format works ("98220 12345",
