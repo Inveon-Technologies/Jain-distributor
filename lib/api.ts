@@ -1,4 +1,4 @@
-import type { Order, OrderItem, Salesperson, Shop, Village } from "@/data/types";
+import type { ItemSuggestion, Order, OrderItem, Salesperson, Shop, Village } from "@/data/types";
 
 /** Base URL of the backend API, baked in at build time. Same-origin `/api/v1` when unset. */
 export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "/api/v1").replace(/\/$/, "");
@@ -58,6 +58,30 @@ export async function apiFetch<T = unknown>(path: string, init: Omit<RequestInit
     throw new ApiError(res.status, err.code ?? "ERROR", err.message ?? `Request failed (${res.status})`);
   }
   return json as T;
+}
+
+/** Downloads a file from the API (with the bearer token) and saves it under the server's file name. */
+export async function apiDownload(path: string, fallbackName: string): Promise<void> {
+  const token = getAuthToken();
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  } catch {
+    throw new ApiError(0, "NETWORK_ERROR", "Could not reach the server. Check your internet connection.");
+  }
+  if (!res.ok) {
+    const err = (await res.json().catch(() => null))?.error ?? {};
+    throw new ApiError(res.status, err.code ?? "ERROR", err.message ?? `Download failed (${res.status})`);
+  }
+  const name = res.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /* ---------- API response → UI shape mappers ---------- */
@@ -164,18 +188,28 @@ export interface ApiOrderItem {
   quantity: number;
   unit: string;
   unitCode?: string;
+  itemId?: string | null;
+  itemName?: string | null;
+  itemUnit?: string | null;
+  itemPicked?: boolean;
+  /** Only on /voice responses: Item Master candidates for this line. */
+  suggestions?: ItemSuggestion[];
 }
 
 /** API item → UI item ("रवा (Rava)"). Units already come as "किलो (kg)". */
 export function toOrderItem(i: ApiOrderItem): OrderItem {
   const name = i.nameEn && i.nameEn !== i.name ? `${i.name} (${i.nameEn})` : i.name;
-  return { name, quantity: Number(i.quantity), unit: i.unit };
+  const item: OrderItem = { name, quantity: Number(i.quantity), unit: i.unit };
+  if (i.itemId) Object.assign(item, { itemId: i.itemId, itemName: i.itemName ?? undefined, itemUnit: i.itemUnit ?? undefined });
+  return item;
 }
 
 /** UI item → API item, splitting "रवा (Rava)" back into name / nameEn. */
 export function fromOrderItem(i: OrderItem): ApiOrderItem {
   const m = i.name.match(/^(.*?)\s*\((.*?)\)$/);
-  return m ? { name: m[1], nameEn: m[2], quantity: i.quantity, unit: i.unit } : { name: i.name, quantity: i.quantity, unit: i.unit };
+  const base: ApiOrderItem = m ? { name: m[1], nameEn: m[2], quantity: i.quantity, unit: i.unit } : { name: i.name, quantity: i.quantity, unit: i.unit };
+  if (!i.itemId) return base;
+  return { ...base, nameEn: i.itemName, itemId: i.itemId, itemName: i.itemName, itemUnit: i.itemUnit, itemPicked: i.itemPicked || undefined };
 }
 
 export function formatDateTime(iso: string): string {

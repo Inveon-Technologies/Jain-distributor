@@ -23,6 +23,25 @@ notes when the matching `vx.y.z` tag is pushed.
 
 ### Added
 
+- Item Master (admin → आयटम मास्टर): the distributor's 3,996 products, imported from the shop's
+  item list (cleaned: blank and header rows, doubled spaces, exact duplicates and "CASH" dropped;
+  `PACKET`/`PCKET`/`PK` → `PKT`, `PATI` → `PATTI`, `1KG` → `1 KG`, "RS : 73" → "RS 73"; MRP and
+  pieces per pack read out). Admins search, add, edit, deactivate and import items, set a
+  Marathi name and spoken aliases, and can test how a spoken phrase is matched.
+- Item Master export: "Export (Excel/CSV)" downloads the whole list (name, packing, MRP, Marathi
+  name, spoken names, status) as a CSV that opens in Excel. The same file can be edited and
+  imported back; with "update existing items" ticked, matching items get the file's MRP, Marathi
+  name, spoken names and status. Imports read a header row (`name`, `packing`, `mrp`/`price`, …).
+- Voice orders keep only Item Master products. Spoken lines that match no item (background talk,
+  greetings, products the distributor does not sell) are left out of the order and shown on the
+  review screen under "आयटम मास्टरमध्ये नसल्याने वगळले". Describing words ("मोठा", "थोडे") no
+  longer outweigh the brand name.
+- Voice orders suggest Item Master products for every line. Marathi speech is matched to the
+  English item names by sound ("पार्ले जी" ≈ PARLE G, "व्हॅसलीन" ≈ VASELINE), Marathi meanings
+  ("साबण" = SOAP, "बाळाचा" = BABY), prices ("दहा रुपये" / "दहाचे" = ₹10, no longer taken as the
+  quantity) and pack sizes ("शंभर मिली"). The best match is picked when confident; the salesperson
+  can change it from the suggestions or by searching, and a hand-picked item learns the spoken
+  name as an alias. Item Master words are also sent to the speech recogniser as hints.
 - Background talk is kept out of voice orders: press and hold the mic to speak (a tap still
   toggles), each press adds to the order, and talk with no product, unit or number word ("अरे तू
   कधी आलास") is left out and shown separately with an "add to order" button. Server-side

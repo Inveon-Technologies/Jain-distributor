@@ -6,7 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { DataGate } from "@/components/common/DataGate";
 import { apiFetch, ApiError, ApiOrderItem, toOrderItem } from "@/lib/api";
 import { translations } from "@/data/translations";
-import { OrderItem } from "@/data/types";
+import { ItemSuggestion, OrderItem } from "@/data/types";
 import { BilingualName } from "@/components/common/BilingualName";
 import {
   CheckCircle2,
@@ -18,9 +18,148 @@ import {
   Plus,
   Trash2,
   Package,
+  Search,
+  AlertTriangle,
 } from "lucide-react";
 
-type ReviewItem = OrderItem & { isNew?: boolean };
+type ReviewItem = OrderItem & { isNew?: boolean; suggestions?: ItemSuggestion[]; unitCode?: string };
+
+/** Parsed line → review line. A matched line keeps the spoken name; the Item Master name is shown under it. */
+function toReviewItem(i: ApiOrderItem): ReviewItem {
+  const base = i.itemId ? { name: i.name, quantity: Number(i.quantity), unit: i.unit } : toOrderItem(i);
+  return {
+    ...base,
+    itemId: i.itemId ?? undefined,
+    itemName: i.itemName ?? undefined,
+    itemUnit: i.itemUnit ?? undefined,
+    suggestions: i.suggestions ?? [],
+    unitCode: i.unitCode,
+  };
+}
+
+/**
+ * Shows which Item Master product a spoken line was matched to, and lets the salesperson pick
+ * another one from the suggestions or by searching (in Marathi or English).
+ */
+function ItemMatch({
+  item,
+  language,
+  onPick,
+}: {
+  item: ReviewItem;
+  language: "mr" | "en";
+  onPick: (s: ItemSuggestion | null) => void;
+}) {
+  const mr = language === "mr";
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<ItemSuggestion[] | null>(null);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (!open || !q) {
+      setResults(null);
+      return;
+    }
+    let cancelled = false;
+    const id = setTimeout(() => {
+      const params = new URLSearchParams({ q, limit: "8" });
+      if (item.unitCode) params.set("unitCode", item.unitCode);
+      apiFetch<{ data: ItemSuggestion[] }>(`/items/suggest?${params}`)
+        .then((res) => !cancelled && setResults(res.data))
+        .catch(() => !cancelled && setResults([]));
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(id);
+    };
+  }, [query, open, item.unitCode]);
+
+  const options = results ?? item.suggestions ?? [];
+
+  return (
+    <div className="mt-1.5">
+      {item.itemName ? (
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="max-w-full inline-flex items-start gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-800 text-left"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-px" />
+          <span className="break-words">
+            {item.itemName}
+            {item.itemUnit && <span className="font-medium text-emerald-600"> · {item.itemUnit}</span>}
+            <span className="text-brand-primary underline ml-1.5">{mr ? "बदला" : "Change"}</span>
+          </span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-800"
+        >
+          <AlertTriangle className="w-3.5 h-3.5" />
+          <span>{mr ? "आयटम मास्टरमधून निवडा" : "Pick from Item Master"}</span>
+        </button>
+      )}
+
+      {open && (
+        <div className="mt-2 p-2 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={mr ? "शोधा: पार्ले, कोलगेट..." : "Search: parle, कोलगेट..."}
+              className="w-full pl-8 pr-2 py-1.5 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+            />
+          </div>
+          {options.length === 0 && (
+            <p className="text-[11px] text-slate-500 px-1">{mr ? "जुळणारे आयटम नाहीत." : "No matching items."}</p>
+          )}
+          <ul className="space-y-1 max-h-56 overflow-y-auto">
+            {options.map((s) => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPick(s);
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className={`w-full text-left px-2.5 py-2 rounded-lg text-xs border transition ${
+                    s.id === item.itemId
+                      ? "bg-emerald-100 border-emerald-300"
+                      : "bg-white border-slate-200 hover:border-emerald-300"
+                  }`}
+                >
+                  <span className="font-bold text-slate-900 block">{s.name}</span>
+                  <span className="text-[11px] text-slate-500">
+                    {s.marathiName ? `${s.marathiName} · ` : ""}
+                    {s.unit}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          {item.itemId && (
+            <button
+              type="button"
+              onClick={() => {
+                onPick(null);
+                setOpen(false);
+              }}
+              className="text-[11px] font-bold text-slate-500 hover:text-red-600 px-1"
+            >
+              {mr ? "आयटम काढा (फक्त बोललेले नाव ठेवा)" : "Clear (keep only the spoken name)"}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function OrderReviewContent() {
   const router = useRouter();
@@ -38,6 +177,8 @@ function OrderReviewContent() {
   const [isParsing, setIsParsing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  /** Spoken lines with a quantity that are not Item Master products, left out of the order. */
+  const [notInMaster, setNotInMaster] = useState<string[]>([]);
 
   /** Reads the line items out of the spoken text with the server's Marathi order parser. */
   const parseText = async (text: string) => {
@@ -48,11 +189,12 @@ function OrderReviewContent() {
     setIsParsing(true);
     setError("");
     try {
-      const { data } = await apiFetch<{ data: { items: ApiOrderItem[] } }>("/voice/parse", {
+      const { data } = await apiFetch<{ data: { items: ApiOrderItem[]; notInMaster?: string[] } }>("/voice/parse", {
         method: "POST",
         body: { text },
       });
-      setItems(data.items.map(toOrderItem));
+      setItems(data.items.map(toReviewItem));
+      setNotInMaster(data.notInMaster ?? []);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not read the order text");
     } finally {
@@ -91,10 +233,35 @@ function OrderReviewContent() {
     setItems((prev) => prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
   };
 
+  /** The salesperson picked (or cleared) the Item Master product for a line. */
+  const handlePickItem = (index: number, s: ItemSuggestion | null) => {
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        if (!s) return { ...item, itemId: undefined, itemName: undefined, itemUnit: undefined, itemPicked: false };
+        // A line matched under its spoken name loses the generic "(Sugar)" label once an item is picked.
+        const spoken = item.name.replace(/\s*\([^)]*\)$/, "").trim();
+        return {
+          ...item,
+          name: spoken || s.marathiName || s.name,
+          itemId: s.id,
+          itemName: s.name,
+          itemUnit: s.unit,
+          itemPicked: true,
+        };
+      })
+    );
+  };
+
   const handleSaveOrder = async () => {
-    const finalItems = items
+    const finalItems: OrderItem[] = items
       .filter((i) => i.name.trim() && i.unit.trim())
-      .map(({ name, quantity, unit }) => ({ name: name.trim(), quantity, unit: unit.trim() }));
+      .map(({ name, quantity, unit, itemId, itemName, itemUnit, itemPicked }) => ({
+        name: name.trim(),
+        quantity,
+        unit: unit.trim(),
+        ...(itemId ? { itemId, itemName, itemUnit, itemPicked } : {}),
+      }));
     if (!finalItems.length) {
       setError(language === "mr" ? "किमान एक वस्तू जोडा." : "Add at least one item.");
       return;
@@ -236,15 +403,29 @@ function OrderReviewContent() {
           </p>
         )}
 
+        {!isParsing && notInMaster.length > 0 && (
+          <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3">
+            <span className="font-bold block mb-0.5">
+              {language === "mr" ? "आयटम मास्टरमध्ये नसल्याने वगळले:" : "Left out (not in the Item Master):"}
+            </span>
+            {notInMaster.join(" · ")}
+            <span className="block text-[11px] text-slate-400 mt-1">
+              {language === "mr"
+                ? "हवे असल्यास “नवीन वस्तू जोडा” मधून आयटम मास्टरमधील वस्तू निवडा."
+                : "To order one of these, use “Add item” and pick it from the Item Master."}
+            </span>
+          </div>
+        )}
+
         <div className="divide-y divide-slate-100">
           {items.map((item, idx) => {
             const nameMatch = item.name.match(/^(.*?)\s*\((.*?)\)$/);
             const unitMatch = item.unit.match(/^(.*?)\s*\((.*?)\)$/);
 
             return (
-              <div key={idx} className="py-3 flex items-center justify-between gap-3">
+              <div key={idx} className="py-3 flex items-start justify-between gap-3">
                 {item.isNew ? (
-                <div className="flex-1 space-y-1">
+                <div className="flex-1 min-w-0 space-y-1">
                   <input
                     type="text"
                     value={item.name}
@@ -259,9 +440,10 @@ function OrderReviewContent() {
                     placeholder={language === "mr" ? "नग / किलो" : "Unit"}
                     className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
                   />
+                  <ItemMatch item={item} language={language} onPick={(s) => handlePickItem(idx, s)} />
                 </div>
                 ) : (
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <span className="text-sm sm:text-base font-bold text-slate-900 block leading-tight">
                     {nameMatch ? (
                       <BilingualName
@@ -284,11 +466,12 @@ function OrderReviewContent() {
                       item.unit
                     )}
                   </span>
+                  <ItemMatch item={item} language={language} onPick={(s) => handlePickItem(idx, s)} />
                 </div>
                 )}
 
               {/* Quantity Counter */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <div className="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200/80">
                   <button
                     type="button"
