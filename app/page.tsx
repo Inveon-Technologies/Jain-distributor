@@ -50,8 +50,6 @@ export default function LoginPage() {
 
   // Forgot password modal
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
-  const [resetInput, setResetInput] = useState("");
-  const [resetSuccess, setResetSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +68,11 @@ export default function LoginPage() {
     } else if (res.error === "TOO_MANY_REQUESTS") {
       setError(language === "mr" ? "खूप प्रयत्न झाले. थोड्या वेळाने पुन्हा प्रयत्न करा." : "Too many attempts. Please try again later.");
     } else {
-      setError(language === "mr" ? "ई-मेल किंवा पासवर्ड चुकीचा आहे." : "Invalid email or password.");
+      setError(
+        language === "mr"
+          ? "मोबाईल नंबर / ई-मेल किंवा पासवर्ड चुकीचा आहे."
+          : "Invalid mobile number / email or password.",
+      );
     }
   };
 
@@ -99,12 +101,6 @@ export default function LoginPage() {
     setNewEmail("");
     setNewMobile("");
     setNewPassword("");
-  };
-
-  const handleResetPassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resetInput.trim()) return;
-    setResetSuccess(true);
   };
 
   return (
@@ -212,8 +208,8 @@ export default function LoginPage() {
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
                 {language === "mr"
-                  ? "तुमचे अधिकृत ई-मेल व पासवर्ड वापरून लॉगिन करा."
-                  : "Enter your assigned credentials to access your portal."}
+                  ? "तुमचा मोबाईल नंबर (किंवा ई-मेल) व पासवर्ड वापरून लॉगिन करा."
+                  : "Log in with your mobile number (or email) and password."}
               </p>
             </div>
 
@@ -237,16 +233,19 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  {t.email}
+                  {language === "mr" ? "मोबाईल नंबर किंवा ई-मेल" : "Mobile number or email"}
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <input
-                    type="email"
+                    type="text"
                     required
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="user@jaindistributor.in"
+                    placeholder="98220 12345 / user@jaindistributor.in"
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:border-brand-primary text-sm font-medium transition"
                   />
                 </div>
@@ -281,8 +280,6 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => {
                       setIsForgotPasswordOpen(true);
-                      setResetSuccess(false);
-                      setResetInput("");
                     }}
                     className="text-xs font-semibold text-brand-primary hover:text-brand-deep hover:underline cursor-pointer"
                   >
@@ -495,60 +492,22 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {resetSuccess ? (
-              <div className="space-y-4 py-2">
-                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium space-y-2">
-                  <div className="flex items-center gap-2 font-bold text-sm text-emerald-900">
-                    <CheckCircle2 className="w-5 h-5 text-brand-primary shrink-0" />
-                    <span>{language === "mr" ? "विनंती पाठवली!" : "Request Sent!"}</span>
-                  </div>
-                  <p>{t.resetSentMessage}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsForgotPasswordOpen(false)}
-                  className="w-full py-2.5 rounded-xl bg-brand-primary text-white font-bold text-xs cursor-pointer"
-                >
-                  {language === "mr" ? "समजले (लॉगिनकडे जा)" : "Got it (Back to Login)"}
-                </button>
+            <div className="space-y-4 py-2">
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-sm font-medium space-y-2">
+                <p>
+                  {language === "mr"
+                    ? "पासवर्ड विसरलात? तुमच्या ॲडमिनला सांगा. ॲडमिन सेल्सपर्सन पानावरून तुमचा नवीन पासवर्ड सेट करतील."
+                    : "Forgot your password? Ask your admin. They can set a new password for you from the Salespersons page."}
+                </p>
               </div>
-            ) : (
-              <form onSubmit={handleResetPassword} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    {language === "mr" ? "नोंदणीकृत ई-मेल / मोबाईल" : "Registered Email or Mobile"} *
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required
-                      value={resetInput}
-                      onChange={(e) => setResetInput(e.target.value)}
-                      placeholder="user@jaindistributor.in / 98220..."
-                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-2 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsForgotPasswordOpen(false)}
-                    className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 cursor-pointer"
-                  >
-                    {t.cancel}
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-brand-primary text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Check className="w-4 h-4" />
-                    <span>{t.sendResetLink}</span>
-                  </button>
-                </div>
-              </form>
-            )}
+              <button
+                type="button"
+                onClick={() => setIsForgotPasswordOpen(false)}
+                className="w-full py-2.5 rounded-xl bg-brand-primary text-white font-bold text-xs cursor-pointer"
+              >
+                {language === "mr" ? "समजले (लॉगिनकडे जा)" : "Got it (Back to Login)"}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -7,6 +7,14 @@ notes when the matching `vx.y.z` tag is pushed.
 
 ## [Unreleased]
 
+### Added
+
+- Log in with a mobile number as well as an email. Any common format works ("98220 12345",
+  "+91 98220 12345", "098220-12345"). Two live accounts can no longer share a mobile number.
+- Admins can set a new password for any salesperson from the key button on the Salespersons
+  page. "Forgot password?" on the login screen now says to ask the admin instead of claiming a
+  reset link was sent.
+
 ### Removed
 
 - All demo data: the frontend mock data (`data/mockData.ts`), the backend demo seed
