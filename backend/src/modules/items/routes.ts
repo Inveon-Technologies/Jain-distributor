@@ -7,7 +7,7 @@ import { parse } from "../../lib/validate.js";
 import { authenticate, requireAdmin } from "../../middleware/auth.js";
 import { isDevanagari } from "../voice/phonetic.js";
 import { invalidateItemCatalog, itemMatcher } from "./catalog.js";
-import { cleanItemName, normalizeUnit, parseItemList, priceOf } from "./importer.js";
+import { cleanItemName, normalizeUnit, parseItemList, priceOf, toItemCsv } from "./importer.js";
 
 /** Item Master: the products salespersons' spoken orders are matched to. */
 export const itemsRouter = Router();
@@ -101,6 +101,20 @@ itemsRouter.get("/suggest", async (req, res) => {
   res.json({ data: matcher.suggest(f.q, { limit: f.limit, unitCode: f.unitCode }) });
 });
 
+/** GET /items/export – the whole Item Master as CSV (opens in Excel; re-importable). */
+itemsRouter.get("/export", requireAdmin, async (_req, res) => {
+  const { rows } = await pool.query(
+    `SELECT name, unit, price, marathi_name AS "marathiName", aliases, status
+       FROM items WHERE deleted_at IS NULL ORDER BY name, unit`,
+  );
+  const date = new Date().toISOString().slice(0, 10);
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="item-master-${date}.csv"`);
+  // The web app may run on another origin; let it read the file name.
+  res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+  res.send(toItemCsv(rows));
+});
+
 itemsRouter.get("/:id", async (req, res) => {
   const { id } = parse(idParams, req.params);
   res.json({ data: await getItem(id) });
@@ -157,31 +171,54 @@ itemsRouter.delete("/:id", requireAdmin, async (req, res) => {
 });
 
 /**
- * POST /items/import { text } – adds items from a pasted or uploaded list (name <TAB> packing per
- * line, or name,packing). Items already in the master (same name and packing) are left unchanged.
+ * POST /items/import { text, update? } – adds items from a pasted or uploaded list: name <TAB>
+ * packing per line, or columns under a header row (the CSV from GET /items/export). Items already
+ * in the master (same name and packing) are left unchanged, or with `update: true` get the file's
+ * MRP, Marathi name, spoken names and status (only the columns the file has).
  */
 itemsRouter.post("/import", requireAdmin, async (req, res) => {
-  const { text } = parse(z.object({ text: z.string().min(1).max(1_000_000) }), req.body);
-  const { items, skipped } = parseItemList(text);
+  const { text, update } = parse(
+    z.object({ text: z.string().min(1).max(1_000_000), update: z.boolean().default(false) }),
+    req.body,
+  );
+  const { items, skipped, columns } = parseItemList(text);
+  const has = (c: string) => columns.includes(c);
   let added = 0;
+  let updated = 0;
   const CHUNK = 1000;
   for (let i = 0; i < items.length; i += CHUNK) {
     const chunk = items.slice(i, i + CHUNK);
-    const { rowCount } = await pool.query(
-      `INSERT INTO items (name, unit, pack_type, pack_qty, free_qty, price)
-       SELECT * FROM unnest($1::text[], $2::text[], $3::text[], $4::int[], $5::int[], $6::numeric[])
-       ON CONFLICT (lower(name), lower(unit)) WHERE deleted_at IS NULL DO NOTHING`,
+    const { rows } = await pool.query<{ inserted: boolean }>(
+      `INSERT INTO items (name, unit, pack_type, pack_qty, free_qty, price, marathi_name, aliases, status)
+       SELECT n, u, pt, pq, fq, pr, mn, CASE WHEN al IS NULL OR al = '' THEN '{}'::text[] ELSE string_to_array(al, '|') END,
+              COALESCE(st, 'ACTIVE')
+         FROM unnest($1::text[], $2::text[], $3::text[], $4::int[], $5::int[], $6::numeric[], $7::text[], $8::text[], $9::text[])
+              AS t(n, u, pt, pq, fq, pr, mn, al, st)
+       ON CONFLICT (lower(name), lower(unit)) WHERE deleted_at IS NULL DO UPDATE SET
+         price        = CASE WHEN $11 THEN EXCLUDED.price ELSE items.price END,
+         marathi_name = CASE WHEN $12 THEN EXCLUDED.marathi_name ELSE items.marathi_name END,
+         aliases      = CASE WHEN $13 THEN EXCLUDED.aliases ELSE items.aliases END,
+         status       = CASE WHEN $14 THEN EXCLUDED.status ELSE items.status END,
+         updated_at   = now()
+       WHERE $10::boolean
+       RETURNING (xmax = 0) AS inserted`,
       [chunk.map((r) => r.name), chunk.map((r) => r.unit), chunk.map((r) => r.packType),
-        chunk.map((r) => r.packQty), chunk.map((r) => r.freeQty), chunk.map((r) => r.price)],
+        chunk.map((r) => r.packQty), chunk.map((r) => r.freeQty), chunk.map((r) => r.price),
+        chunk.map((r) => r.marathiName ?? null), chunk.map((r) => (r.aliases ?? []).join("|")),
+        chunk.map((r) => r.status ?? null), update, has("price"), has("marathiName"), has("aliases"), has("status")],
     );
-    added += rowCount ?? 0;
+    for (const r of rows) {
+      if (r.inserted) added++;
+      else updated++;
+    }
   }
-  if (added) invalidateItemCatalog();
+  if (added || updated) invalidateItemCatalog();
   res.json({
     data: {
       read: items.length,
       added,
-      alreadyInMaster: items.length - added,
+      updated,
+      alreadyInMaster: items.length - added - updated,
       skippedCount: skipped.length,
       skipped: skipped.slice(0, 100),
     },

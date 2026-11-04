@@ -239,8 +239,10 @@ describe("voice", () => {
       needsReview: false,
       lowConfidenceWords: [],
     });
-    expect(res.body.data.items).toHaveLength(4);
-    expect(res.body.data.summary).toContain("रवा – 10 किलो");
+    // रवा is not in the Item Master (a cosmetics / FMCG list), so it is set aside, not ordered.
+    expect(res.body.data.items.map((i: { name: string }) => i.name)).toEqual(["पार्ले बिस्किट", "गूळ", "डाबर टूथपेस्ट"]);
+    expect(res.body.data.notInMaster).toEqual(["रवा 10 किलो"]);
+    expect(res.body.data.summary).toContain("पार्ले बिस्किट – 20 पॅकेट");
   });
 
   it("rejects recordings that are too short to contain speech", async () => {
@@ -342,10 +344,48 @@ describe("item master", () => {
     const text = "item_name\titem_size\nPARLE G RS 10\tPCS\nNEW  BRAND SOAP RS 12\tPACKET 6\nNEW BRAND SOAP RS 12\tPKT 6\n\tPCS\n";
     const res = await api().post("/api/v1/items/import").set(auth(admin)).send({ text });
     expect(res.status).toBe(200);
-    expect(res.body.data).toMatchObject({ read: 2, added: 1, alreadyInMaster: 1, skippedCount: 3 });
+    // Skipped: the duplicate "NEW BRAND SOAP" line and the row without a name (line 1 is the header).
+    expect(res.body.data).toMatchObject({ read: 2, added: 1, updated: 0, alreadyInMaster: 1, skippedCount: 2 });
     const found = await api().get("/api/v1/items").set(auth(admin)).query({ q: "NEW BRAND SOAP" });
     expect(found.body.data).toHaveLength(1);
     expect(found.body.data[0]).toMatchObject({ unit: "PKT 6", packQty: 6, price: 12 });
+  });
+
+  it("exports the master as CSV that imports back, updating Marathi names, aliases and MRP", async () => {
+    const res = await api().get("/api/v1/items/export").set(auth(admin));
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/csv");
+    expect(res.headers["content-disposition"]).toMatch(/attachment; filename="item-master-\d{4}-\d{2}-\d{2}\.csv"/);
+    const lines = res.text.replace(/^\uFEFF/, "").trim().split("\r\n");
+    expect(lines[0]).toBe("name,packing,mrp,marathi_name,spoken_names,status");
+    expect(lines).toHaveLength(1 + 3996 + 2); // header, seeded items, the item added above and the imported one
+    expect(lines).toContain("SHREE GANESH AGARBATTI RS 25,PKT 12,30,श्री गणेश अगरबत्ती,गणेश उदबत्ती,ACTIVE");
+    expect((await api().get("/api/v1/items/export").set(auth(sales))).status).toBe(403);
+
+    const edited = "name,packing,mrp,marathi_name,spoken_names,status\r\n" +
+      '"NEW BRAND SOAP RS 12",PKT 6,15,न्यू ब्रँड साबण,"नवीन साबण | ब्रँड साबण",INACTIVE\r\n';
+    const keep = await api().post("/api/v1/items/import").set(auth(admin)).send({ text: edited });
+    expect(keep.body.data).toMatchObject({ read: 1, added: 0, updated: 0, alreadyInMaster: 1 });
+    const upd = await api().post("/api/v1/items/import").set(auth(admin)).send({ text: edited, update: true });
+    expect(upd.body.data).toMatchObject({ read: 1, added: 0, updated: 1, alreadyInMaster: 0 });
+    const found = await api().get("/api/v1/items").set(auth(admin)).query({ q: "NEW BRAND SOAP" });
+    expect(found.body.data[0]).toMatchObject({
+      price: 15,
+      marathiName: "न्यू ब्रँड साबण",
+      aliases: ["नवीन साबण", "ब्रँड साबण"],
+      status: "INACTIVE",
+    });
+  });
+
+  it("keeps only Item Master products in voice orders", async () => {
+    const res = await api()
+      .post("/api/v1/voice/parse")
+      .set(auth(sales))
+      .send({ text: "चार निव्हिया क्रीम, दोन नमस्कार किलो, पाच झिंगालाला पाकीट" });
+    expect(res.body.data.items.map((i: { name: string }) => i.name)).toEqual(["निव्हिया क्रीम"]);
+    expect(res.body.data.notInMaster).toEqual(["नमस्कार 2 किलो", "झिंगालाला 5 पॅकेट"]);
+    expect(res.body.data.ignored).toEqual(expect.arrayContaining(["नमस्कार 2 किलो", "झिंगालाला 5 पॅकेट"]));
+    expect(res.body.data.formattedText).toBe("निव्हिया क्रीम 4 नग");
   });
 
   it("deletes items softly", async () => {
@@ -374,7 +414,7 @@ describe("orders, visits and dashboard", () => {
       salesperson: { nameEn: "Amol Patil" },
       shop: { nameEn: "Sai Kirana Stores" },
     });
-    expect(res.body.data.items).toHaveLength(4);
+    expect(res.body.data.items).toHaveLength(3);
     orderId = res.body.data.id;
   });
 

@@ -111,7 +111,7 @@ Dates in query strings are `YYYY-MM-DD` in business time (IST).
 | POST | `/voice/parse` | any | `{ text }` → `{ items, unparsed, formattedText, summary }` after the transcript is edited. `formattedText` is one item per line with digit quantities ("रवा 1 किलो"). |
 
 Items look like `{ "name": "रवा", "nameEn": "Rava", "quantity": 10, "unit": "किलो (kg)", "unitCode": "KG" }`.
-Voice responses also carry Item Master matches for each line: `suggestions` (best first, with a
+Voice responses keep only lines that match an Item Master item (others are listed in `notInMaster` and `ignored`) and carry Item Master matches for each line: `suggestions` (best first, with a
 0–1 `score`) and, when the best one is a confident match, `itemId`, `itemName` and `itemUnit`
 (`nameEn` is then the Item Master name). A spoken price is kept apart from the quantity
 ("पार्ले जी दहा रुपये वीस पॅकेट" → `पार्ले जी ₹10`, 20 packets), and so is a pack size
@@ -131,7 +131,8 @@ sound ("कोलगेट" ≈ COLGATE), Marathi meanings ("साबण" = SOA
 | GET | `/items/:id` | any | |
 | POST | `/items` | admin | `{ name, marathiName?, aliases?, unit?, price?, status? }`. Name and packing are cleaned (`PACKET` → `PKT`); price defaults to "RS N" in the name. 409 when name + packing exists. |
 | PATCH / DELETE | `/items/:id` | admin | Delete is soft; past orders keep the item name. |
-| POST | `/items/import` | admin | `{ text }`: one item per line, `name<TAB>packing` (or `name,packing`). Adds new items, leaves existing ones; returns `{ read, added, alreadyInMaster, skippedCount, skipped }`. |
+| GET | `/items/export` | admin | The whole Item Master as CSV (`name,packing,mrp,marathi_name,spoken_names,status`), re-importable. |
+| POST | `/items/import` | admin | `{ text, update? }`: one item per line, `name<TAB>packing` (or `name,packing`), or columns under a header row (the export CSV). Adds new items; with `update: true` existing items get the file's MRP, Marathi name, spoken names and status. Returns `{ read, added, updated, alreadyInMaster, skippedCount, skipped }`. |
 
 When a salesperson picks an item by hand on the review screen (`itemPicked: true` on the order
 line), `POST /orders` saves the spoken name as an alias of that item, so it is suggested first

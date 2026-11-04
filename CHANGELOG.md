@@ -28,6 +28,14 @@ notes when the matching `vx.y.z` tag is pushed.
   `PACKET`/`PCKET`/`PK` → `PKT`, `PATI` → `PATTI`, `1KG` → `1 KG`, "RS : 73" → "RS 73"; MRP and
   pieces per pack read out). Admins search, add, edit, deactivate and import items, set a
   Marathi name and spoken aliases, and can test how a spoken phrase is matched.
+- Item Master export: "Export (Excel/CSV)" downloads the whole list (name, packing, MRP, Marathi
+  name, spoken names, status) as a CSV that opens in Excel. The same file can be edited and
+  imported back; with "update existing items" ticked, matching items get the file's MRP, Marathi
+  name, spoken names and status. Imports read a header row (`name`, `packing`, `mrp`/`price`, …).
+- Voice orders keep only Item Master products. Spoken lines that match no item (background talk,
+  greetings, products the distributor does not sell) are left out of the order and shown on the
+  review screen under "आयटम मास्टरमध्ये नसल्याने वगळले". Describing words ("मोठा", "थोडे") no
+  longer outweigh the brand name.
 - Voice orders suggest Item Master products for every line. Marathi speech is matched to the
   English item names by sound ("पार्ले जी" ≈ PARLE G, "व्हॅसलीन" ≈ VASELINE), Marathi meanings
   ("साबण" = SOAP, "बाळाचा" = BABY), prices ("दहा रुपये" / "दहाचे" = ₹10, no longer taken as the

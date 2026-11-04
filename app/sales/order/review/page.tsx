@@ -177,6 +177,8 @@ function OrderReviewContent() {
   const [isParsing, setIsParsing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  /** Spoken lines with a quantity that are not Item Master products, left out of the order. */
+  const [notInMaster, setNotInMaster] = useState<string[]>([]);
 
   /** Reads the line items out of the spoken text with the server's Marathi order parser. */
   const parseText = async (text: string) => {
@@ -187,11 +189,12 @@ function OrderReviewContent() {
     setIsParsing(true);
     setError("");
     try {
-      const { data } = await apiFetch<{ data: { items: ApiOrderItem[] } }>("/voice/parse", {
+      const { data } = await apiFetch<{ data: { items: ApiOrderItem[]; notInMaster?: string[] } }>("/voice/parse", {
         method: "POST",
         body: { text },
       });
       setItems(data.items.map(toReviewItem));
+      setNotInMaster(data.notInMaster ?? []);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not read the order text");
     } finally {
@@ -398,6 +401,20 @@ function OrderReviewContent() {
               ? "मजकुरातून वस्तू वाचता आल्या नाहीत. मजकूर दुरुस्त करा किंवा वस्तू जोडा."
               : "No items could be read from the text. Edit the text or add items."}
           </p>
+        )}
+
+        {!isParsing && notInMaster.length > 0 && (
+          <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3">
+            <span className="font-bold block mb-0.5">
+              {language === "mr" ? "आयटम मास्टरमध्ये नसल्याने वगळले:" : "Left out (not in the Item Master):"}
+            </span>
+            {notInMaster.join(" · ")}
+            <span className="block text-[11px] text-slate-400 mt-1">
+              {language === "mr"
+                ? "हवे असल्यास “नवीन वस्तू जोडा” मधून आयटम मास्टरमधील वस्तू निवडा."
+                : "To order one of these, use “Add item” and pick it from the Item Master."}
+            </span>
+          </div>
         )}
 
         <div className="divide-y divide-slate-100">

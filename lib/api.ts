@@ -60,6 +60,30 @@ export async function apiFetch<T = unknown>(path: string, init: Omit<RequestInit
   return json as T;
 }
 
+/** Downloads a file from the API (with the bearer token) and saves it under the server's file name. */
+export async function apiDownload(path: string, fallbackName: string): Promise<void> {
+  const token = getAuthToken();
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  } catch {
+    throw new ApiError(0, "NETWORK_ERROR", "Could not reach the server. Check your internet connection.");
+  }
+  if (!res.ok) {
+    const err = (await res.json().catch(() => null))?.error ?? {};
+    throw new ApiError(res.status, err.code ?? "ERROR", err.message ?? `Download failed (${res.status})`);
+  }
+  const name = res.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 /* ---------- API response → UI shape mappers ---------- */
 
 type Nullable<T> = { [K in keyof T]: T[K] | null };

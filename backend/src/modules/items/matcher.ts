@@ -1,7 +1,7 @@
 import { normalizeDigits, readQuantity, isNumberToken } from "../voice/numbers.js";
 import { editDistance, isDevanagari, keyOf, similarity, spelledLetters, type WordKey } from "../voice/phonetic.js";
 import { FILLERS, isPriceToken, markPrices, PRODUCT_EN, sizeOf, UNIT_BY_ALIAS } from "../voice/parser.js";
-import { ENGLISH_NUMBERS, marathiSynonyms } from "./synonyms.js";
+import { DESCRIBING_WORDS, ENGLISH_NUMBERS, marathiSynonyms } from "./synonyms.js";
 
 /**
  * Finds Item Master entries for a spoken product name.
@@ -32,7 +32,7 @@ export interface Suggestion {
 }
 
 /** Words in item names that say nothing about which product it is. */
-const STOP_WORDS = new Set(["RS", "ML", "GM", "G", "KG", "LTR", "L", "MG", "&", "AND", "OF", "THE", "WITH", "NEW", "-"]);
+const STOP_WORDS = new Set(["थोडे", "थोडा", "थोडी", "जरा", "फक्त", "RS", "ML", "GM", "G", "KG", "LTR", "L", "MG", "&", "AND", "OF", "THE", "WITH", "NEW", "-"]);
 
 const MEASURE: Record<string, string> = { ML: "ML", GM: "GRAM", G: "GRAM", KG: "KG", LTR: "LITRE", L: "LITRE" };
 
@@ -46,6 +46,8 @@ const PACK_FOR_UNIT: Record<string, string[]> = {
 export const AUTO_MATCH_SCORE = 0.55;
 const MIN_SCORE = 0.3;
 const WORD_MATCH = 0.7;
+/** How much a describing word matched through its meaning ("मोठा" = BIG) counts, next to a product word. */
+const MEANING_WEIGHT = 0.4;
 
 interface Size {
   value: number;
@@ -68,6 +70,8 @@ interface QueryWord {
   keys: WordKey[];
   /** Keys of the word's English meanings ("साबण" → SOAP): count a little less than the word's own sound. */
   meaningKeys: WordKey[];
+  /** A size / colour / taste word ("मोठा" = BIG): its meaning counts much less than a product word. */
+  describing: boolean;
   text: string;
 }
 
@@ -213,23 +217,33 @@ export class ItemMatcher {
       // Order words ("द्या") and units ("पॅकेट") say nothing about which product it is.
       if (isDevanagari(tok) && (FILLERS.has(tok) || UNIT_BY_ALIAS.has(tok))) continue;
       if (ENGLISH_NUMBERS[word] !== undefined) query.numbers.push(ENGLISH_NUMBERS[word]);
-      query.words.push({ text: word, keys: [keyOf(word)], meaningKeys: synonymsOf(word).map(keyOf) });
+      query.words.push({
+        text: word,
+        keys: [keyOf(word)],
+        meaningKeys: synonymsOf(word).map(keyOf),
+        describing: DESCRIBING_WORDS.has(word),
+      });
     }
     return query;
   }
 
   /** Best sound match of each query word against every vocabulary word (only good matches kept). */
-  private matchWords(words: QueryWord[]): Map<number, number>[] {
+  private matchWords(words: QueryWord[]): { hits: Map<number, number>; byMeaning: Set<number> }[] {
     return words.map((w) => {
       const hits = new Map<number, number>();
+      const byMeaning = new Set<number>();
       this.vocab.forEach((v, idx) => {
-        let best = 0;
-        for (const k of w.keys) best = Math.max(best, similarity(k, v.key));
+        let heard = 0;
+        for (const k of w.keys) heard = Math.max(heard, similarity(k, v.key));
         // A translated word is less telling than a brand name heard as such ("गुलाबी लक्स" is LUX first).
-        for (const k of w.meaningKeys) best = Math.max(best, similarity(k, v.key) * 0.85);
-        if (best >= WORD_MATCH) hits.set(idx, best);
+        let meant = 0;
+        for (const k of w.meaningKeys) meant = Math.max(meant, similarity(k, v.key) * 0.85);
+        const best = Math.max(heard, meant);
+        if (best < WORD_MATCH) return;
+        hits.set(idx, best);
+        if (meant > heard && w.describing) byMeaning.add(idx);
       });
-      return hits;
+      return { hits, byMeaning };
     });
   }
 
@@ -240,16 +254,19 @@ export class ItemMatcher {
   suggest(spoken: string, opts: { limit?: number; unitCode?: string } = {}): Suggestion[] {
     const query = this.parseQuery(spoken);
     if (!query.words.length) return [];
-    const hits = this.matchWords(query.words);
+    const matched = this.matchWords(query.words);
+    const hits = matched.map((m) => m.hits);
     const avgWeight = this.vocab.length ? this.vocab.reduce((s, v) => s + v.weight, 0) / this.vocab.length : 1;
-    // A word that matches nothing still counts against the score, as a typical word would.
-    const queryWeights = hits.map((h) => {
+    // A word that matches nothing still counts against the score, at half a typical word: spoken
+    // descriptions and stray words ("अरे कोलगेट") should not outweigh the brand. Words matched only
+    // through their meaning ("मोठा" = BIG) count less than words heard as a name.
+    const queryWeights = matched.map(({ hits: h, byMeaning }) => {
       let best = 0;
-      let weight = avgWeight;
+      let weight = avgWeight * 0.5;
       for (const [idx, sim] of h) {
         if (sim > best) {
           best = sim;
-          weight = this.vocab[idx].weight;
+          weight = this.vocab[idx].weight * (byMeaning.has(idx) ? MEANING_WEIGHT : 1);
         }
       }
       return weight;
@@ -278,8 +295,9 @@ export class ItemMatcher {
           if (at === -1) return;
           used.add(variant.words[at]);
           // Squared, so a near miss ("COMFORT" for "कापूर" → CAMPHOR) loses clearly to an exact word.
-          queryCovered += queryWeights[qi] * sim * sim;
-          itemCovered += this.vocab[variant.words[at]].weight * sim * sim;
+          const factor = matched[qi].byMeaning.has(variant.words[at]) ? MEANING_WEIGHT : 1;
+          queryCovered += queryWeights[qi] * sim * sim * factor;
+          itemCovered += this.vocab[variant.words[at]].weight * sim * sim * factor;
           if (qi === 0 && at === 0) firstWord = true;
         });
         if (!queryCovered) continue;
@@ -321,14 +339,19 @@ export class ItemMatcher {
    * Whether a spoken word is a product word in the master, for the order parser. Only confident,
    * longer matches count so background talk ("कधी", "तू") is not taken for a product.
    */
-  readonly isKnownWord = (token: string): boolean => {
+  readonly isKnownWord = (token: string): boolean => isDevanagari(token) && (synonymsOf(token).length > 0 || this.soundsLikeMasterWord(token));
+
+  /**
+   * The word is heard as a word of an Item Master name (a brand, a loanword such as "क्रीम"): only
+   * confident, longer matches count, so background talk ("कधी", "तू") is not taken for a product.
+   */
+  readonly soundsLikeMasterWord = (token: string): boolean => {
     const cached = this.knownCache.get(token);
     if (cached !== undefined) return cached;
     let known = false;
-    if (isDevanagari(token)) {
+    if (isDevanagari(token) && !synonymsOf(token).length) {
       const letters = spelledLetters(token);
       if (letters) known = letters.length > 1 || this.letters.has(letters.toUpperCase());
-      else if (synonymsOf(token).length) known = true;
       else {
         const key = keyOf(token);
         // Short words ("बाम" = BALM, "रिन" = RIN) only when they sound exactly like a master word.

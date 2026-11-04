@@ -5,7 +5,7 @@ import { config } from "../../config.js";
 import { badRequest, HttpError } from "../../lib/errors.js";
 import { parse } from "../../lib/validate.js";
 import { authenticate } from "../../middleware/auth.js";
-import { itemMatcher, withSuggestions } from "../items/catalog.js";
+import { itemMatcher, keepMasterItems } from "../items/catalog.js";
 import type { ItemMatcher } from "../items/matcher.js";
 import { formatOrderText, parseOrderText, summarizeItems } from "./parser.js";
 import { activeSpeechProvider, createSpeechProvider, type SpeechProvider } from "./providers.js";
@@ -15,11 +15,13 @@ const upload = multer({
   limits: { fileSize: config.MAX_AUDIO_MB * 1024 * 1024, files: 1 },
 });
 
-/** Parses the order with the Item Master's vocabulary and attaches item suggestions to each line. */
+/**
+ * Parses the order with the Item Master's vocabulary, attaches item suggestions to each line and
+ * keeps only lines that are Item Master products (the rest go to `ignored`).
+ */
 function parseWithItems(text: string, matcher: ItemMatcher) {
-  const parsed = parseOrderText(text, { isKnownWord: matcher.isKnownWord });
-  const items = withSuggestions(parsed.items, matcher);
-  return { ...parsed, items, formattedText: formatOrderText(parsed), summary: summarizeItems(parsed.items) };
+  const parsed = keepMasterItems(parseOrderText(text, { isKnownWord: matcher.isKnownWord }), matcher);
+  return { ...parsed, formattedText: formatOrderText(parsed), summary: summarizeItems(parsed.items) };
 }
 
 export function createVoiceRouter(provider: SpeechProvider = createSpeechProvider()) {

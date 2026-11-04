@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { normalizeUnit, parseItemList } from "../src/modules/items/importer.js";
+import { normalizeUnit, parseItemList, toItemCsv } from "../src/modules/items/importer.js";
 import { ItemMatcher, type CatalogItem } from "../src/modules/items/matcher.js";
-import { withSuggestions } from "../src/modules/items/catalog.js";
+import { keepMasterItems, withSuggestions } from "../src/modules/items/catalog.js";
 import { keyOf, similarity } from "../src/modules/voice/phonetic.js";
 import { formatOrderText, parseOrderText } from "../src/modules/voice/parser.js";
 
@@ -28,8 +28,8 @@ describe("item list import", () => {
       ["ACO SPRAY 40 ML 196", "PCS", 196],
       ["AMBER SMOOTH POLY (0.50) FREE", "PKT", null],
     ]);
+    // The first line is read as the header (item_name / item_size columns).
     expect(skipped.map((s) => s.reason)).toEqual([
-      "Not an item",
       "No item name",
       "Duplicate",
       "Not an item",
@@ -52,6 +52,40 @@ describe("item list import", () => {
     ["", "PCS", "PCS", null, null],
   ])("packing %j → %j", (raw, unit, packType, packQty, freeQty) => {
     expect(normalizeUnit(raw)).toEqual({ unit, packType, packQty, freeQty });
+  });
+});
+
+describe("item master CSV", () => {
+  it("reads header columns, quoted names and spoken names", () => {
+    const csv = [
+      "\uFEFFname,packing,mrp,marathi_name,spoken_names,status",
+      '"PARLE G, FAMILY PACK RS 50",PKT 12,"55",पार्ले जी फॅमिली,"पार्ले मोठा | फॅमिली पार्ले",inactive',
+      "LUX SOAP RS 10,PCS,,,,",
+      "BAD PRICE,PCS,abc,,,",
+    ].join("\r\n");
+    const { items, skipped, columns } = parseItemList(csv);
+    expect(columns).toEqual(["price", "marathiName", "aliases", "status"]);
+    expect(items[0]).toMatchObject({
+      name: "PARLE G, FAMILY PACK RS 50",
+      unit: "PKT 12",
+      price: 55,
+      marathiName: "पार्ले जी फॅमिली",
+      aliases: ["पार्ले मोठा", "फॅमिली पार्ले"],
+      status: "INACTIVE",
+    });
+    // An empty MRP falls back to "RS 10" in the name.
+    expect(items[1]).toMatchObject({ name: "LUX SOAP RS 10", price: 10, marathiName: null, aliases: [] });
+    expect(skipped).toEqual([{ line: 4, text: "BAD PRICE,PCS,abc,,,", reason: 'Price "abc" is not a number' }]);
+  });
+
+  it("round-trips through the export format", () => {
+    const rows = [{ name: 'A "B", C', unit: "PKT 30", price: 5, marathiName: "ए बी", aliases: ["एक", "दोन"], status: "ACTIVE" }];
+    const back = parseItemList(toItemCsv(rows)).items[0];
+    expect(back).toMatchObject({ name: 'A "B", C', unit: "PKT 30", price: 5, marathiName: "ए बी", aliases: ["एक", "दोन"], status: "ACTIVE" });
+  });
+
+  it("still reads name,packing lines without a header, with commas in the name", () => {
+    expect(parseItemList("SOAP, BIG RS 10,PCS").items[0]).toMatchObject({ name: "SOAP, BIG RS 10", unit: "PCS" });
   });
 });
 
@@ -138,6 +172,17 @@ describe("ItemMatcher", () => {
     const [parle, other] = withSuggestions(parsed.items, matcher);
     expect(parle).toMatchObject({ itemName: "PARLE G RS 10", nameEn: "PARLE G RS 10", quantity: 20 });
     expect(other.itemId).toBeUndefined();
+  });
+
+  it("keeps only lines that are Item Master products", () => {
+    const parsed = parseOrderText("दोन पॅकेट पार्ले जी, पाच किलो रवा, थोडे कोलगेट, थोडे शेंगदाणे", { isKnownWord: matcher.isKnownWord });
+    const result = keepMasterItems(parsed, matcher);
+    expect(result.items.map((i) => i.itemName)).toEqual(["PARLE G RS 5"]);
+    expect(result.unparsed).toEqual(["थोडे कोलगेट"]);
+    expect(result.notInMaster).toEqual(["रवा 5 किलो", "थोडे शेंगदाणे"]);
+    expect(result.ignored).toEqual(expect.arrayContaining(result.notInMaster));
+    // An empty master keeps everything, so a new install still records orders.
+    expect(keepMasterItems(parsed, new ItemMatcher([])).items).toHaveLength(2);
   });
 
   it("knows Item Master words so they are not dropped as background talk", () => {

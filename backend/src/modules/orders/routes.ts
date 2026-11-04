@@ -6,7 +6,7 @@ import { idParams, isoDate, pageMeta, pagination, uuid } from "../../lib/schemas
 import { businessDayRange } from "../../lib/time.js";
 import { parse } from "../../lib/validate.js";
 import { authenticate, currentUser, requireAdmin, requireRole, type AuthUser } from "../../middleware/auth.js";
-import { invalidateItemCatalog, itemMatcher, withSuggestions } from "../items/catalog.js";
+import { invalidateItemCatalog, itemMatcher, keepMasterItems } from "../items/catalog.js";
 import { marathiSynonyms } from "../items/synonyms.js";
 import { isDevanagari } from "../voice/phonetic.js";
 import { isPriceToken, parseOrderText, sizeOf } from "../voice/parser.js";
@@ -101,8 +101,8 @@ ordersRouter.post("/", requireRole("SALESPERSON"), async (req, res) => {
   if (body.items) items = body.items;
   else {
     const matcher = await itemMatcher();
-    items = withSuggestions(parseOrderText(body.transcribedText, { isKnownWord: matcher.isKnownWord }).items, matcher)
-      .map(({ suggestions: _suggestions, ...rest }) => rest);
+    items = keepMasterItems(parseOrderText(body.transcribedText, { isKnownWord: matcher.isKnownWord }), matcher)
+      .items.map(({ suggestions: _suggestions, ...rest }) => rest);
   }
   const learned = items.filter((i) => i.itemPicked && i.itemId).map((i) => ({ itemId: i.itemId!, alias: aliasOf(i.name) }));
   items = items.map(({ itemPicked: _picked, ...rest }) => rest);

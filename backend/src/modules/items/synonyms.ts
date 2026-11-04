@@ -50,3 +50,12 @@ export function marathiSynonyms(word: string): string[] | undefined {
   }
   return undefined;
 }
+
+/**
+ * Describing words (size, colour, taste). They narrow a choice but should not outweigh the brand:
+ * "मोठा कोलगेट" is COLGATE first, not "BIG AGARBATTI".
+ */
+export const DESCRIBING_WORDS = new Set([
+  "मोठा", "मोठी", "मोठे", "लहान", "छोटा", "छोटी", "पांढरा", "पांढरी", "लाल", "काळा", "काळी", "हिरवा", "हिरवी",
+  "पिवळा", "निळा", "गुलाबी", "सोनेरी", "गोड", "तिखट", "खारट", "थंड", "गरम", "नवीन", "मोफत", "फुकट",
+]);

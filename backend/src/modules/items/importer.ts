@@ -17,10 +17,16 @@ export interface ItemRow {
   packQty: number | null;
   freeQty: number | null;
   price: number | null;
+  /** Only when the file has these columns (an Item Master export, for example). */
+  marathiName?: string | null;
+  aliases?: string[];
+  status?: "ACTIVE" | "INACTIVE";
 }
 
 export interface ImportResult {
   items: ItemRow[];
+  /** Optional columns the file has (price, marathiName, aliases, status). */
+  columns: string[];
   skipped: { line: number; text: string; reason: string }[];
 }
 
@@ -127,50 +133,145 @@ export function normalizeUnit(raw: string): Pick<ItemRow, "unit" | "packType" | 
   return { unit: parts.filter(Boolean).join(" "), packType, packQty, freeQty };
 }
 
-/** Parses the pasted / uploaded list. Accepts tab-separated or comma-separated lines. */
+/** Header names accepted for each column (lower case). Files without a header are name, packing. */
+const COLUMNS: Record<"name" | "unit" | "price" | "marathiName" | "aliases" | "status", string[]> = {
+  name: ["name", "item_name", "item name", "item", "आयटम", "नाव"],
+  unit: ["unit", "packing", "item_size", "item size", "size", "pack", "पॅकिंग"],
+  price: ["price", "mrp", "rate", "किंमत"],
+  marathiName: ["marathi_name", "marathi name", "marathi", "मराठी नाव"],
+  aliases: ["aliases", "spoken_names", "spoken names", "बोलण्याची नावे"],
+  status: ["status", "स्थिती"],
+};
+
+type ColumnMap = Partial<Record<keyof typeof COLUMNS, number>>;
+
+function headerOf(cells: string[]): ColumnMap | undefined {
+  const lower = cells.map((c) => c.trim().toLowerCase());
+  const map: ColumnMap = {};
+  for (const [key, names] of Object.entries(COLUMNS) as [keyof typeof COLUMNS, string[]][]) {
+    const idx = lower.findIndex((c) => names.includes(c));
+    if (idx !== -1) map[key] = idx;
+  }
+  return map.name !== undefined ? map : undefined;
+}
+
+/** One CSV line with quoted fields ("A, B",PCS). */
+export function splitCsvLine(line: string): string[] {
+  const cells: string[] = [];
+  let cur = "";
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (quoted) {
+      if (ch === '"' && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else if (ch === '"') quoted = false;
+      else cur += ch;
+    } else if (ch === '"' && !cur.trim()) {
+      quoted = true;
+      cur = "";
+    } else if (ch === ",") {
+      cells.push(cur);
+      cur = "";
+    } else cur += ch;
+  }
+  cells.push(cur);
+  return cells;
+}
+
+/**
+ * Parses the pasted / uploaded list. Accepts tab-separated or comma-separated lines: either
+ * name + packing per line (the billing export), or any columns under a header row such as the
+ * Item Master export (name, packing, mrp, marathi_name, spoken_names, status).
+ */
 export function parseItemList(text: string): ImportResult {
   const items: ItemRow[] = [];
   const skipped: ImportResult["skipped"] = [];
   const seen = new Set<string>();
-  const tabbed = text.includes("\t");
+  const clean = text.replace(/^\uFEFF/, "");
+  const tabbed = clean.includes("\t");
+  let header: ColumnMap | undefined;
+  let sawRow = false;
 
-  text.split(/\r?\n/).forEach((line, index) => {
+  clean.split(/\r?\n/).forEach((line, index) => {
     const lineNo = index + 1;
     if (!line.trim()) return;
     if (tabbed && !line.includes("\t")) {
       skipped.push({ line: lineNo, text: line.trim().slice(0, 80), reason: "Not in name<TAB>packing format" });
       return;
     }
-    const [rawName, rawUnit = ""] = tabbed ? line.split("\t") : splitCsv(line);
-    const name = cleanItemName(rawName ?? "");
+    const cells = tabbed ? line.split("\t") : splitCsvLine(line);
+    if (!sawRow) {
+      sawRow = true;
+      header = headerOf(cells);
+      if (header) return;
+    }
+    // Without a header, an unquoted name may itself contain commas: the packing is the last field.
+    const columns = header ?? { name: 0, unit: 1 };
+    const row = header || tabbed || cells.length <= 2 ? cells : [cells.slice(0, -1).join(","), cells.at(-1)!];
+    const cell = (key: keyof typeof COLUMNS) => {
+      const idx = columns[key];
+      return idx === undefined ? undefined : (row[idx] ?? "").trim();
+    };
+
+    const name = cleanItemName(cell("name") ?? "");
     if (!name) {
-      skipped.push({ line: lineNo, text: line.trim(), reason: "No item name" });
+      skipped.push({ line: lineNo, text: line.trim().slice(0, 80), reason: "No item name" });
       return;
     }
     if (NOT_ITEMS.has(name)) {
-      skipped.push({ line: lineNo, text: line.trim(), reason: "Not an item" });
+      skipped.push({ line: lineNo, text: line.trim().slice(0, 80), reason: "Not an item" });
       return;
     }
     if (name.length > 200) {
       skipped.push({ line: lineNo, text: line.trim().slice(0, 80), reason: "Name is longer than 200 characters" });
       return;
     }
-    const unit = normalizeUnit(rawUnit);
+    const unit = normalizeUnit(cell("unit") ?? "");
     const key = `${name}|${unit.unit}`;
     if (seen.has(key)) {
-      skipped.push({ line: lineNo, text: line.trim(), reason: "Duplicate" });
+      skipped.push({ line: lineNo, text: line.trim().slice(0, 80), reason: "Duplicate" });
       return;
     }
+
+    const rawPrice = cell("price")?.replace(/^(₹|rs\.?)\s*/i, "").replace(/,/g, "");
+    const price = rawPrice ? Number(rawPrice) : NaN;
+    if (rawPrice && (!Number.isFinite(price) || price < 0)) {
+      skipped.push({ line: lineNo, text: line.trim().slice(0, 80), reason: `Price "${rawPrice}" is not a number` });
+      return;
+    }
+    const row_: ItemRow = { name, ...unit, price: rawPrice ? price : priceOf(name) };
+    const marathi = cell("marathiName");
+    if (marathi !== undefined) row_.marathiName = marathi.slice(0, 200) || null;
+    const aliases = cell("aliases");
+    if (aliases !== undefined) {
+      row_.aliases = [...new Set(aliases.split(/[|;]/).map((a) => a.trim()).filter(Boolean))]
+        .map((a) => a.slice(0, 100))
+        .slice(0, 50);
+    }
+    const st = cell("status")?.toUpperCase();
+    if (st) row_.status = st === "INACTIVE" || st === "बंद" ? "INACTIVE" : "ACTIVE";
+
     seen.add(key);
-    items.push({ name, ...unit, price: priceOf(name) });
+    items.push(row_);
   });
-  return { items, skipped };
+  const columns = header ? (["price", "marathiName", "aliases", "status"] as const).filter((k) => header![k] !== undefined) : [];
+  return { items, skipped, columns: [...columns] };
 }
 
-/** "NAME, PKT 30" or "\"NAME, WITH COMMA\",PCS". */
-function splitCsv(line: string): string[] {
-  const m = line.match(/^\s*"((?:[^"]|"")*)"\s*,(.*)$/);
-  if (m) return [m[1].replace(/""/g, '"'), m[2]];
-  const comma = line.lastIndexOf(",");
-  return comma === -1 ? [line] : [line.slice(0, comma), line.slice(comma + 1)];
+const csvCell = (v: string | number | null | undefined) => {
+  const s = v === null || v === undefined ? "" : String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+/** CSV of the Item Master, re-importable with parseItemList. Starts with a BOM so Excel reads Marathi. */
+export function toItemCsv(
+  rows: { name: string; unit: string; price: number | null; marathiName: string | null; aliases: string[]; status: string }[],
+): string {
+  const lines = [["name", "packing", "mrp", "marathi_name", "spoken_names", "status"].join(",")];
+  for (const r of rows) {
+    lines.push([r.name, r.unit, r.price, r.marathiName, r.aliases.join(" | "), r.status].map(csvCell).join(","));
+  }
+  return "\uFEFF" + lines.join("\r\n") + "\r\n";
 }

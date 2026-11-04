@@ -200,7 +200,8 @@ export function similarity(a: WordKey, b: WordKey): number {
   const shortest = Math.min(a.skeleton.length, b.skeleton.length);
   if (shortest <= 2) {
     if (a.skeleton !== b.skeleton) return Math.min(skel, full) * 0.6;
-    return a.skeleton.length === 2 ? Math.max(0.75, full) : Math.max(0.6, full);
+    // Same consonants in a short word: the vowels decide ("टाईड" = TIDE, but "रवा" is not REVIVE).
+    return Math.max(0.6, full);
   }
   // One extra consonant at the end ("BISCUITS" / "बिस्किट", "CANDLES" / "CANDAL") is nearly equal.
   const [short, long] = a.skeleton.length <= b.skeleton.length ? [a.skeleton, b.skeleton] : [b.skeleton, a.skeleton];

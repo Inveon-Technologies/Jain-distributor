@@ -3,12 +3,13 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiDownload, apiFetch, ApiError } from "@/lib/api";
 import type { ItemSuggestion, MasterItem } from "@/data/types";
 import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Download,
   Mic,
   Package,
   Pencil,
@@ -24,6 +25,7 @@ const PAGE_SIZE = 50;
 interface ImportSummary {
   read: number;
   added: number;
+  updated: number;
   alreadyInMaster: number;
   skippedCount: number;
   skipped: { line: number; text: string; reason: string }[];
@@ -75,6 +77,8 @@ export default function AdminItemsPage() {
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportSummary | null>(null);
+  const [importUpdate, setImportUpdate] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const [tryText, setTryText] = useState("");
   const tryQ = useDebounced(tryText.trim(), 300);
@@ -203,7 +207,10 @@ export default function AdminItemsPage() {
     setImporting(true);
     setImportResult(null);
     try {
-      const res = await apiFetch<{ data: ImportSummary }>("/items/import", { method: "POST", body: { text: importText } });
+      const res = await apiFetch<{ data: ImportSummary }>("/items/import", {
+        method: "POST",
+        body: { text: importText, update: importUpdate },
+      });
       setImportResult(res.data);
       await load();
     } catch (err) {
@@ -213,10 +220,22 @@ export default function AdminItemsPage() {
     }
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await apiDownload("/items/export", "item-master.csv");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not export the items");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const closeImport = () => {
     setImportOpen(false);
     setImportText("");
     setImportResult(null);
+    setImportUpdate(false);
   };
 
   return (
@@ -230,7 +249,16 @@ export default function AdminItemsPage() {
               : "Spoken Marathi orders are matched to these items automatically."}
           </p>
         </div>
-        <div className="flex gap-2 self-start sm:self-auto">
+        <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={exporting}
+            className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-60 text-slate-700 text-xs sm:text-sm font-bold flex items-center gap-2 transition cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>{exporting ? (mr ? "तयार होत आहे..." : "Preparing...") : mr ? "एक्सपोर्ट (Excel/CSV)" : "Export (Excel/CSV)"}</span>
+          </button>
           <button
             type="button"
             onClick={() => setImportOpen(true)}
@@ -557,8 +585,8 @@ export default function AdminItemsPage() {
                 <h3 className="text-lg font-extrabold text-slate-900">{mr ? "आयटम यादी आयात करा" : "Import item list"}</h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {mr
-                    ? "प्रत्येक ओळीत: नाव <TAB> पॅकिंग (बिलिंग सॉफ्टवेअरमधून किंवा Excel मधून कॉपी करा). आधी असलेले आयटम बदलले जात नाहीत."
-                    : "One item per line: name <TAB> packing (copy from the billing software or Excel). Items already in the master are left as they are."}
+                    ? "प्रत्येक ओळीत: नाव <TAB> पॅकिंग (बिलिंग सॉफ्टवेअरमधून किंवा Excel मधून कॉपी करा), किंवा एक्सपोर्ट केलेली CSV फाइल (name, packing, mrp, marathi_name, spoken_names, status)."
+                    : "One item per line: name <TAB> packing (copy from the billing software or Excel), or the exported CSV (name, packing, mrp, marathi_name, spoken_names, status)."}
                 </p>
               </div>
               <button
@@ -584,12 +612,26 @@ export default function AdminItemsPage() {
               className={`${inputClass} font-mono text-xs`}
             />
 
+            <label className="flex items-start gap-2 text-xs text-slate-700 font-medium cursor-pointer">
+              <input
+                type="checkbox"
+                checked={importUpdate}
+                onChange={(e) => setImportUpdate(e.target.checked)}
+                className="mt-0.5 accent-emerald-700"
+              />
+              <span>
+                {mr
+                  ? "आधी असलेले आयटमही फाइलप्रमाणे अपडेट करा (MRP, मराठी नाव, बोलण्याची नावे, स्थिती). नाही निवडल्यास फक्त नवीन आयटम जोडले जातात."
+                  : "Also update items already in the master from the file (MRP, Marathi name, spoken names, status). Otherwise only new items are added."}
+              </span>
+            </label>
+
             {importResult && (
               <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 space-y-2">
                 <p className="font-bold">
                   {mr
-                    ? `${importResult.added} नवीन आयटम जोडले, ${importResult.alreadyInMaster} आधीच होते, ${importResult.skippedCount} ओळी वगळल्या.`
-                    : `${importResult.added} items added, ${importResult.alreadyInMaster} already in the master, ${importResult.skippedCount} lines skipped.`}
+                    ? `${importResult.added} नवीन आयटम जोडले, ${importResult.updated} अपडेट केले, ${importResult.alreadyInMaster} न बदलता ठेवले, ${importResult.skippedCount} ओळी वगळल्या.`
+                    : `${importResult.added} items added, ${importResult.updated} updated, ${importResult.alreadyInMaster} left unchanged, ${importResult.skippedCount} lines skipped.`}
                 </p>
                 {importResult.skipped.length > 0 && (
                   <ul className="max-h-32 overflow-y-auto space-y-0.5 text-emerald-800">
