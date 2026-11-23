@@ -205,7 +205,32 @@ function OrderReviewContent() {
   useEffect(() => {
     const savedText = sessionStorage.getItem("current_order_text") || "";
     setOrderText(savedText);
+
+    // If the record page stored structured items directly, skip /voice/parse entirely.
+    const savedItems = sessionStorage.getItem("current_order_items");
+    if (savedItems) {
+      try {
+        type CartItem = { itemId: string; name: string; marathiName?: string; unit: string; quantity: number };
+        const parsed: CartItem[] = JSON.parse(savedItems);
+        const reviewItems: ReviewItem[] = parsed.map((c) => ({
+          name: c.marathiName || c.name,
+          quantity: c.quantity,
+          unit: c.unit,
+          itemId: c.itemId,
+          itemName: c.name,
+          itemUnit: c.unit,
+        }));
+        setItems(reviewItems);
+        // Clean up so a later page refresh re-parses fresh
+        sessionStorage.removeItem("current_order_items");
+        return;
+      } catch {
+        // Fall through to text parsing if JSON is corrupt
+      }
+    }
+
     parseText(savedText);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleToggleEditText = () => {

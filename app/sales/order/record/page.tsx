@@ -6,62 +6,34 @@ import { useApp } from "@/context/AppContext";
 import { DataGate } from "@/components/common/DataGate";
 import { translations } from "@/data/translations";
 import { BilingualName } from "@/components/common/BilingualName";
+import { apiFetch } from "@/lib/api";
 import {
-  Mic,
   Store,
   MapPin,
   ArrowRight,
-  Square,
-  Sparkles,
-  Loader2,
-  AlertTriangle,
+  Search,
+  Trash2,
+  Plus,
+  Minus,
+  ShoppingCart,
+  X,
 } from "lucide-react";
-import {
-  MAX_RECORDING_SECONDS,
-  RecorderError,
-  startRecording,
-  type RecorderHandle,
-} from "@/lib/voice/recorder";
-import { TranscribeError, transcribeRecording, type TranscribeResult } from "@/lib/voice/transcribe";
-import {
-  BrowserSpeechError,
-  isBrowserSpeechSupported,
-  startBrowserSpeech,
-  type BrowserSpeechHandle,
-} from "@/lib/voice/browserSpeech";
-import { apiFetch } from "@/lib/api";
 
-/** Below this the salesperson is asked to check the transcript (matches the API's STT_MIN_CONFIDENCE default). */
-const REVIEW_CONFIDENCE = 0.7;
+interface ItemSuggestion {
+  id: string;
+  name: string;
+  marathiName?: string;
+  unit: string;
+  score?: number;
+}
 
-/** Bilingual messages for recording and recognition problems. */
-const ERRORS: Record<string, { mr: string; en: string }> = {
-  PERMISSION_DENIED: {
-    mr: "माइक वापरण्याची परवानगी द्या (ब्राउझर सेटिंग्ज) आणि पुन्हा प्रयत्न करा.",
-    en: "Allow microphone access in the browser settings and try again.",
-  },
-  NETWORK: {
-    mr: "इंटरनेट कनेक्शन तपासा आणि पुन्हा बोला.",
-    en: "Check the internet connection and speak again.",
-  },
-  NO_MIC: { mr: "फोनमध्ये माइक सापडला नाही.", en: "No microphone was found on this device." },
-  UNSUPPORTED: {
-    mr: "हा ब्राउझर रेकॉर्डिंग करू शकत नाही. Chrome मध्ये उघडा.",
-    en: "This browser cannot record audio. Please open the app in Chrome.",
-  },
-  NO_SPEECH: {
-    mr: "आवाज ऐकू आला नाही. फोन तोंडाजवळ धरा आणि पुन्हा स्पष्ट बोला.",
-    en: "No speech was heard. Hold the phone closer and speak again clearly.",
-  },
-  STT_NOT_CONFIGURED: {
-    mr: "व्हॉईस ओळख सर्व्हरवर अजून सुरू केलेली नाही. तोपर्यंत ऑर्डर खाली टाइप करा.",
-    en: "Voice recognition is not set up on the server yet. Please type the order below for now.",
-  },
-  STT_FAILED: {
-    mr: "व्हॉईस सेवा आत्ता उपलब्ध नाही. पुन्हा प्रयत्न करा किंवा ऑर्डर टाइप करा.",
-    en: "Speech service is unavailable right now. Try again or type the order.",
-  },
-};
+interface CartItem {
+  itemId: string;
+  name: string;
+  marathiName?: string;
+  unit: string;
+  quantity: number;
+}
 
 function RecordOrderContent() {
   const router = useRouter();
@@ -73,192 +45,114 @@ function RecordOrderContent() {
   const currentShop = shops.find((s) => s.id === shopParam) || selectedShop || shops[0];
   const currentVillage = villages.find((v) => v.id === currentShop.villageId) || villages[0];
 
-  const [isRecording, setIsRecording] = useState(false);
-  const [seconds, setSeconds] = useState(0);
-  const [transcribedText, setTranscribedText] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [level, setLevel] = useState(0);
-  const [errorCode, setErrorCode] = useState<string | null>(null);
-  const [result, setResult] = useState<TranscribeResult | null>(null);
-  const recorderRef = useRef<RecorderHandle | null>(null);
-  const browserRef = useRef<BrowserSpeechHandle | null>(null);
-  // "browser": recognise on the phone (no server key needed); "server": upload the recording.
-  const [mode, setMode] = useState<"server" | "browser">("server");
-  // Text already in the box when this recording started; new speech is added below it.
-  const baseTextRef = useRef("");
-  const pressStartRef = useRef(0);
-  // Talk the parser set aside as not part of the order (people speaking nearby).
-  const [ignored, setIgnored] = useState<string[]>([]);
-  const [sttLanguage, setSttLanguage] = useState("mr-IN");
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<ItemSuggestion[]>([]);
+  const [isFetching, setIsFetching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
 
+  // Fetch suggestions with 300ms debounce
   useEffect(() => {
-    apiFetch<{ data: { provider: string; language: string } }>("/voice/config")
-      .then(({ data }) => {
-        setSttLanguage(data.language);
-        // With no server engine configured, fall back to the phone's recogniser when it has one.
-        if (data.provider === "browser" || (data.provider === "none" && isBrowserSpeechSupported())) {
-          setMode("browser");
-        }
-      })
-      .catch(() => undefined);
+    const q = query.trim();
+    if (!q) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setIsFetching(true);
+      try {
+        const res = await apiFetch<{ data: ItemSuggestion[] }>(
+          `/items/suggest?q=${encodeURIComponent(q)}&limit=8`
+        );
+        setSuggestions(res.data ?? []);
+        setShowDropdown(true);
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setIsFetching(false);
+      }
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Release the microphone if the salesperson leaves the screen mid-recording.
-  useEffect(
-    () => () => {
-      recorderRef.current?.cancel();
-      browserRef.current?.cancel();
-    },
-    [],
-  );
-
-  // Timer effect when recording
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (isRecording) {
-      interval = setInterval(() => {
-        setSeconds((prev) => prev + 1);
-      }, 1000);
-    } else {
-      if (interval) clearInterval(interval);
-      setSeconds(0);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isRecording]);
-
-  const withBase = (text: string) => [baseTextRef.current.trim(), text.trim()].filter(Boolean).join("\n");
-
-  const stopBrowserSpeech = async () => {
-    const handle = browserRef.current;
-    if (!handle) return;
-    browserRef.current = null;
-    setIsRecording(false);
-    setIsProcessing(true);
-    try {
-      const { text, confidence } = await handle.stop();
-      if (!text) {
-        setErrorCode("NO_SPEECH");
-        return;
+  const handleSelectItem = (item: ItemSuggestion) => {
+    setCart((prev) => {
+      const existing = prev.findIndex((c) => c.itemId === item.id);
+      if (existing >= 0) {
+        // Already in cart: bump quantity
+        return prev.map((c, i) =>
+          i === existing ? { ...c, quantity: c.quantity + 1 } : c
+        );
       }
-      // Turn the spoken words into one item per line with numeric quantities.
-      const parsed = await apiFetch<{
-        data: Pick<TranscribeResult, "items" | "unparsed" | "ignored" | "summary" | "formattedText">;
-      }>("/voice/parse", { method: "POST", body: { text } })
-        .then((r) => r.data)
-        .catch(() => ({ items: [], unparsed: [], ignored: [], summary: "", formattedText: undefined }));
-      // formattedText is "" when everything heard was background talk; keep only the earlier text then.
-      setTranscribedText(withBase(parsed.formattedText ?? text));
-      setIgnored((prev) => [...prev, ...(parsed.ignored ?? [])]);
-      setResult({
-        text,
-        confidence,
-        needsReview:
-          (confidence !== null && confidence < REVIEW_CONFIDENCE) || parsed.unparsed.length > 0 || parsed.items.length === 0,
-        lowConfidenceWords: [],
-        provider: "browser",
-        language: sttLanguage,
-        ...parsed,
-      });
-    } catch (err) {
-      setErrorCode(err instanceof BrowserSpeechError ? err.code : "STT_FAILED");
-    } finally {
-      setIsProcessing(false);
-    }
+      return [
+        ...prev,
+        {
+          itemId: item.id,
+          name: item.name,
+          marathiName: item.marathiName,
+          unit: item.unit,
+          quantity: 1,
+        },
+      ];
+    });
+    setQuery("");
+    setSuggestions([]);
+    setShowDropdown(false);
   };
 
-  const stopAndTranscribe = async () => {
-    if (browserRef.current) return stopBrowserSpeech();
-    const recorder = recorderRef.current;
-    if (!recorder) return;
-    recorderRef.current = null;
-    setIsRecording(false);
-    setLevel(0);
-    setIsProcessing(true);
-    try {
-      const recording = await recorder.stop();
-      const data = await transcribeRecording(recording);
-      setResult(data);
-      setTranscribedText(withBase(data.formattedText ?? data.text));
-      setIgnored((prev) => [...prev, ...(data.ignored ?? [])]);
-    } catch (err) {
-      if (err instanceof RecorderError) setErrorCode(err.code);
-      else if (err instanceof TranscribeError && (err.code === "NO_SPEECH" || err.code === "STT_NOT_CONFIGURED"))
-        setErrorCode(err.code);
-      else setErrorCode("STT_FAILED");
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleQuantityChange = (index: number, delta: number) => {
+    setCart((prev) =>
+      prev.map((item, i) =>
+        i === index ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
+      )
+    );
   };
 
-  // Google's synchronous recognition is limited to about a minute; stop automatically before that.
-  useEffect(() => {
-    if (isRecording && seconds >= MAX_RECORDING_SECONDS) void stopAndTranscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRecording, seconds]);
-
-  const handleToggleRecording = async () => {
-    if (isProcessing) return;
-    if (isRecording) {
-      await stopAndTranscribe();
-      return;
-    }
-    setErrorCode(null);
-    setResult(null);
-    baseTextRef.current = transcribedText;
-    if (mode === "browser") {
-      try {
-        browserRef.current = startBrowserSpeech(sttLanguage, (live) => setTranscribedText(withBase(live)), (err) => {
-          browserRef.current = null;
-          setIsRecording(false);
-          setErrorCode(err.code);
-        });
-        setIsRecording(true);
-      } catch (err) {
-        setErrorCode(err instanceof BrowserSpeechError ? err.code : "UNSUPPORTED");
-      }
-      return;
-    }
-    try {
-      recorderRef.current = await startRecording(setLevel);
-      setIsRecording(true);
-    } catch (err) {
-      setErrorCode(err instanceof RecorderError ? err.code : "NO_MIC");
-    }
-  };
-
-  // Hold the mic to talk and let go to stop, so talk around the salesperson in between is never
-  // recorded. A quick tap still starts a recording that runs until the next tap.
-  const handlePressStart = (e: React.PointerEvent) => {
-    e.preventDefault();
-    pressStartRef.current = Date.now();
-    void handleToggleRecording();
-  };
-
-  const handlePressEnd = () => {
-    const heldMs = Date.now() - pressStartRef.current;
-    if (pressStartRef.current && heldMs > 600 && (recorderRef.current || browserRef.current)) {
-      void stopAndTranscribe();
-    }
-    pressStartRef.current = 0;
-  };
-
-  const handleClear = () => {
-    setTranscribedText("");
-    setIgnored([]);
-    setResult(null);
+  const handleRemoveItem = (index: number) => {
+    setCart((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleProceed = () => {
-    const textToPass = transcribedText.trim();
-    if (!textToPass) return;
+    if (cart.length === 0) return;
+
+    // Build a simple text representation for the review page's /voice/parse fallback
+    const orderText = cart
+      .map((item) => {
+        const displayName = item.marathiName || item.name;
+        return `${displayName} ${item.quantity} ${item.unit}`;
+      })
+      .join("\n");
+
     if (typeof window !== "undefined") {
       sessionStorage.setItem("current_order_shop", currentShop.id);
-      sessionStorage.setItem("current_order_text", textToPass);
+      sessionStorage.setItem("current_order_text", orderText);
+      // Store structured items so the review page can skip re-parsing
+      sessionStorage.setItem("current_order_items", JSON.stringify(cart));
     }
+
     router.push(`/sales/order/review?shop=${currentShop.id}`);
   };
+
+  const mr = language === "mr";
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -279,7 +173,7 @@ function RecordOrderContent() {
             <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-0.5">
               <MapPin className="w-3.5 h-3.5 text-emerald-600" />
               <span>
-                {language === "mr" ? "गाव" : "Village"}:{" "}
+                {mr ? "गाव" : "Village"}:{" "}
                 <BilingualName
                   mr={currentVillage.marathiName}
                   en={currentVillage.englishName}
@@ -303,191 +197,157 @@ function RecordOrderContent() {
       {/* Screen Title */}
       <div className="text-center py-2">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-dark tracking-tight">
-          {t.recordOrderTitle}
+          {mr ? "ऑर्डर नोंदवा" : "Record Order"}
         </h1>
         <p className="text-sm text-slate-500 font-medium mt-1">
-          {t.speakClearly}
+          {mr ? "वस्तू शोधा आणि यादीत जोडा" : "Search items and add them to the list"}
         </p>
       </div>
 
-      {/* Mic Center Stage */}
-      <div className="bg-gradient-to-b from-white via-white to-emerald-50/30 rounded-3xl p-6 sm:p-10 border border-emerald-100/80 shadow-sm flex flex-col items-center justify-center space-y-6">
-        {/* Pulsing Mic Button */}
-        <div className="relative flex items-center justify-center w-52 h-52 sm:w-60 sm:h-60">
-          {isRecording && (
-            <>
-              <div
-                className="absolute inset-0 rounded-full bg-red-400/25 transition-transform duration-75"
-                style={{ transform: `scale(${0.7 + level * 0.3})` }}
-              ></div>
-              <div className="absolute inset-0 rounded-full bg-emerald-300/20 animate-ping duration-1000"></div>
-              <div className="absolute inset-4 rounded-full bg-emerald-400/25 animate-pulse duration-700"></div>
-            </>
+      {/* Search + Autocomplete */}
+      <div ref={searchRef} className="relative">
+        <div className="relative flex items-center">
+          <Search className="w-5 h-5 text-slate-400 absolute left-4 pointer-events-none" />
+          {isFetching && (
+            <div className="absolute right-4 w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
           )}
-
-          <button
-            type="button"
-            onPointerDown={handlePressStart}
-            onPointerUp={handlePressEnd}
-            onPointerLeave={handlePressEnd}
-            onContextMenu={(e) => e.preventDefault()}
-            disabled={isProcessing}
-            className={`relative z-10 w-36 h-36 sm:w-40 sm:h-40 rounded-full flex flex-col items-center justify-center transition-all duration-300 shadow-xl active:scale-95 select-none touch-none ${
-              isRecording
-                ? "bg-red-600 text-white ring-8 ring-red-200"
-                : "bg-gradient-to-br from-brand-primary to-brand-deep text-white ring-8 ring-emerald-100 hover:shadow-2xl"
-            }`}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-12 h-12 text-white animate-spin mb-1" />
-                <span className="text-[11px] font-bold tracking-wider uppercase">
-                  {language === "mr" ? "ओळखत आहे" : "Recognising"}
-                </span>
-              </>
-            ) : isRecording ? (
-              <>
-                <Square className="w-12 h-12 text-white fill-white mb-1" />
-                <span className="text-[11px] font-bold tracking-wider uppercase">
-                  {seconds}s • {language === "mr" ? "थांबवा" : "Stop"}
-                </span>
-              </>
-            ) : (
-              <>
-                <Mic className="w-14 h-14 text-white drop-shadow-md mb-1" />
-                <span className="text-[11px] font-bold tracking-wider uppercase opacity-90">
-                  {language === "mr" ? "बोला" : "Speak"}
-                </span>
-              </>
-            )}
-          </button>
+          {query && !isFetching && (
+            <button
+              type="button"
+              onClick={() => { setQuery(""); setSuggestions([]); setShowDropdown(false); }}
+              className="absolute right-4 text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
+            placeholder={mr ? "वस्तू शोधा: पार्ले, साखर, चहा..." : "Search items: parle, sugar, tea..."}
+            className="w-full pl-11 pr-11 py-4 rounded-2xl border border-slate-200 bg-white shadow-xs text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 transition"
+            autoComplete="off"
+          />
         </div>
 
-        {/* Status Indicator */}
-        <div className="text-center">
-          <div
-            className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition ${
-              isRecording
-                ? "bg-red-50 text-red-600 border border-red-200 animate-pulse"
-                : "bg-emerald-50 text-brand-primary border border-emerald-200"
-            }`}
-          >
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isRecording ? "bg-red-600" : "bg-emerald-600"
-              }`}
-            ></span>
-            <span>{isRecording ? t.recordingActive : t.tapToSpeak}</span>
-          </div>
-          <p className="text-[11px] text-slate-500 font-medium mt-2 max-w-xs mx-auto">
-            {language === "mr"
-              ? "माइक दाबून ठेवा, एक-एक वस्तू बोला आणि सोडा. फोन तोंडाजवळ धरा म्हणजे आजूबाजूचे बोलणे येणार नाही."
-              : "Press and hold the mic, say the items, then let go. Keep the phone close to your mouth so nearby talk is not picked up."}
-          </p>
-        </div>
-
-        {errorCode && (
-          <div className="w-full flex items-start gap-2 p-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{(ERRORS[errorCode] ?? ERRORS.STT_FAILED)[language === "mr" ? "mr" : "en"]}</span>
-          </div>
-        )}
-
-        {/* Transcribed Text Preview Box */}
-        <div className="w-full space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
-            <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-brand-primary" />
-              <span>{t.transcribedSpeechText}</span>
-              {transcribedText && !isRecording && !isProcessing && (
+        {/* Suggestions Dropdown */}
+        {showDropdown && suggestions.length > 0 && (
+          <ul className="absolute z-50 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden max-h-72 overflow-y-auto">
+            {suggestions.map((item) => (
+              <li key={item.id}>
                 <button
                   type="button"
-                  onClick={handleClear}
-                  className="ml-1 px-2 py-0.5 rounded-md border border-slate-200 text-[10px] text-slate-500 hover:bg-slate-50"
+                  onMouseDown={(e) => { e.preventDefault(); handleSelectItem(item); }}
+                  className="w-full text-left px-4 py-3 hover:bg-emerald-50 transition flex items-center justify-between gap-3 border-b border-slate-100 last:border-0"
                 >
-                  {language === "mr" ? "साफ करा" : "Clear"}
+                  <div className="min-w-0">
+                    <span className="block font-bold text-slate-900 text-sm truncate">
+                      {item.marathiName || item.name}
+                    </span>
+                    {item.marathiName && (
+                      <span className="block text-xs text-slate-500 truncate">{item.name}</span>
+                    )}
+                  </div>
+                  <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-lg shrink-0">
+                    {item.unit}
+                  </span>
                 </button>
-              )}
-            </span>
-            {result?.provider === "mock" && (
-              <span className="px-2 py-0.5 rounded-md text-[10px] text-slate-600 bg-slate-100">
-                {language === "mr" ? "चाचणी मजकूर (खरी ओळख नाही)" : "Test text (not real recognition)"}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {showDropdown && query.trim() && !isFetching && suggestions.length === 0 && (
+          <div className="absolute z-50 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl px-4 py-3 text-sm text-slate-500 font-medium">
+            {mr ? "कोणतेही आयटम सापडले नाहीत." : "No items found."}
+          </div>
+        )}
+      </div>
+
+      {/* Cart */}
+      {cart.length > 0 ? (
+        <section className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-brand-primary" />
+              <h3 className="text-base font-bold text-slate-900">
+                {mr ? "निवडलेल्या वस्तू" : "Selected Items"}
+              </h3>
+              <span className="ml-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-black">
+                {cart.length}
               </span>
-            )}
-            {result?.confidence != null && result.provider !== "mock" && (
-              <span
-                className={`px-2 py-0.5 rounded-md text-[10px] ${
-                  result.needsReview ? "text-amber-700 bg-amber-50" : "text-emerald-700 bg-emerald-50"
-                }`}
-              >
-                {language === "mr" ? "अचूकता" : "Confidence"} {Math.round(result.confidence * 100)}%
-              </span>
-            )}
+            </div>
           </div>
 
-          <textarea
-            value={transcribedText}
-            onChange={(e) => setTranscribedText(e.target.value)}
-            disabled={isRecording || isProcessing}
-            placeholder={t.orderTextPlaceholder}
-            rows={7}
-            lang="mr"
-            className={`w-full min-h-[100px] p-4 rounded-2xl border text-sm sm:text-base font-semibold transition leading-relaxed resize-y outline-none focus:ring-2 focus:ring-emerald-200 ${
-              transcribedText
-                ? "bg-white border-emerald-300 text-slate-900 shadow-xs"
-                : "bg-slate-50 border-slate-200 text-slate-400"
-            }`}
-          />
+          <div className="divide-y divide-slate-100">
+            {cart.map((item, idx) => (
+              <div key={item.itemId} className="px-5 py-3.5 flex items-center justify-between gap-3">
+                {/* Item info */}
+                <div className="flex-1 min-w-0">
+                  <span className="block font-bold text-slate-900 text-sm leading-tight truncate">
+                    {item.marathiName || item.name}
+                  </span>
+                  {item.marathiName && (
+                    <span className="block text-xs text-slate-400 truncate">{item.name}</span>
+                  )}
+                  <span className="inline-block text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded-md mt-0.5">
+                    {item.unit}
+                  </span>
+                </div>
 
-          {ignored.length > 0 && !isRecording && (
-            <div className="text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5">
-              <p>
-                {language === "mr"
-                  ? "ऑर्डरशी संबंध नसलेले बोलणे (आजूबाजूचे लोक) वगळले:"
-                  : "Left out talk that is not part of the order (people nearby):"}
-              </p>
-              <p className="text-slate-500 font-normal">{ignored.join(" · ")}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setTranscribedText((prev) => [prev.trim(), ...ignored].filter(Boolean).join("\n"));
-                  setIgnored([]);
-                }}
-                className="text-brand-primary hover:underline"
-              >
-                {language === "mr" ? "हे ऑर्डरमध्ये जोडा" : "Add this to the order"}
-              </button>
-            </div>
-          )}
-
-          {result?.needsReview && (
-            <div className="text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5 space-y-1">
-              <p>
-                {language === "mr"
-                  ? "काही शब्दांबद्दल खात्री नाही. कृपया मजकूर तपासा आणि गरज असल्यास दुरुस्त करा."
-                  : "Some words may be wrong. Please check the text and correct it if needed."}
-              </p>
-              {result.lowConfidenceWords.length > 0 && (
-                <p className="flex flex-wrap gap-1">
-                  {result.lowConfidenceWords.map((w) => (
-                    <span key={w} className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">
-                      {w}
+                {/* Quantity controls + remove */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200/80">
+                    <button
+                      type="button"
+                      onClick={() => handleQuantityChange(idx, -1)}
+                      className="w-7 h-7 rounded-lg bg-white text-slate-700 font-bold hover:bg-slate-200 flex items-center justify-center transition"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="w-10 text-center font-black text-sm text-slate-900">
+                      {item.quantity}
                     </span>
-                  ))}
-                </p>
-              )}
-            </div>
-          )}
+                    <button
+                      type="button"
+                      onClick={() => handleQuantityChange(idx, 1)}
+                      className="w-7 h-7 rounded-lg bg-brand-primary text-white font-bold hover:bg-brand-deep flex items-center justify-center transition"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveItem(idx)}
+                    className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg transition"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <div className="bg-slate-50 border border-dashed border-slate-200 rounded-3xl py-14 flex flex-col items-center justify-center gap-3 text-slate-400">
+          <ShoppingCart className="w-10 h-10 opacity-30" />
+          <p className="text-sm font-semibold">
+            {mr ? "अजून कोणतीही वस्तू जोडली नाही" : "No items added yet"}
+          </p>
+          <p className="text-xs font-medium text-slate-400">
+            {mr ? "वर वस्तू शोधून यादीत जोडा" : "Search for items above and add them to the list"}
+          </p>
         </div>
-      </div>
+      )}
 
       {/* Footer Submit Button */}
       <button
         type="button"
-        disabled={!transcribedText.trim() || isRecording || isProcessing}
+        disabled={cart.length === 0}
         onClick={handleProceed}
         className={`w-full py-4 px-6 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition ${
-          transcribedText.trim() && !isRecording && !isProcessing
+          cart.length > 0
             ? "bg-brand-primary hover:bg-brand-deep text-white shadow-brand-primary/25 cursor-pointer active:scale-[0.99]"
             : "bg-slate-200 text-slate-400 cursor-not-allowed"
         }`}
@@ -502,7 +362,14 @@ function RecordOrderContent() {
 function RecordOrderContentGate() {
   const { villages, shops } = useApp();
   return (
-    <DataGate ready={shops.length > 0 && villages.length > 0} emptyMr="अजून दुकान नाही. आधी दुकान जोडा." emptyEn="No shops yet. Add a shop first." href="/sales/villages" linkMr="गाव निवडा" linkEn="Select village">
+    <DataGate
+      ready={shops.length > 0 && villages.length > 0}
+      emptyMr="अजून दुकान नाही. आधी दुकान जोडा."
+      emptyEn="No shops yet. Add a shop first."
+      href="/sales/villages"
+      linkMr="गाव निवडा"
+      linkEn="Select village"
+    >
       <RecordOrderContent />
     </DataGate>
   );

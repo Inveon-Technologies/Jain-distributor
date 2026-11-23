@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { translations } from "@/data/translations";
 import { BilingualName } from "@/components/common/BilingualName";
-import { MapPin, Store, Mic, ArrowRight, TrendingUp } from "lucide-react";
+import { MapPin, Store, ShoppingCart, ArrowRight, TrendingUp } from "lucide-react";
 
 export default function SalesHomePage() {
   const router = useRouter();
@@ -159,7 +159,7 @@ export default function SalesHomePage() {
                 <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">
                   3
                 </span>
-                <Mic className="w-5 h-5 text-blue-600" />
+                <ShoppingCart className="w-5 h-5 text-blue-600" />
               </div>
               <h4 className="text-base font-bold text-slate-900">
                 {t.step3Title}

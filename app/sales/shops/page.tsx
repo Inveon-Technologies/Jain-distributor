@@ -13,7 +13,7 @@ import {
   MapPin,
   Plus,
   Phone,
-  Mic,
+  ShoppingCart,
   ArrowRight,
   ArrowLeft,
   Search,
@@ -223,7 +223,7 @@ function ShopsContent() {
                     onClick={() => handleStartOrder(shop)}
                     className="w-full mt-5 py-3 px-4 rounded-xl bg-brand-primary hover:bg-brand-deep text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.99] transition"
                   >
-                    <Mic className="w-4 h-4 text-emerald-300" />
+                    <ShoppingCart className="w-4 h-4 text-emerald-300" />
                     <span>{t.recordOrderForShop}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>

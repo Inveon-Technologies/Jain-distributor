@@ -99,8 +99,8 @@ export const translations = {
     step1Desc: "नियोजित गाव निवडून दुकानांची यादी पहा.",
     step2Title: "दुकान निवडा",
     step2Desc: "दुकान निवडा किंवा नवीन दुकान नोंदणी करा.",
-    step3Title: "ऑर्डर बोला आणि जतन करा",
-    step3Desc: "दुकानदाराची ऑर्डर मराठीत बोला व एका क्लिकवर जतन करा.",
+    step3Title: "ऑर्डर निवडा आणि जतन करा",
+    step3Desc: "वस्तू आपोआप शोधून प्रमाण निवडा व एका क्लिकवर जतन करा.",
 
     // Village screen
     selectVillage: "गाव निवडा",
@@ -333,8 +333,8 @@ export const translations = {
     step1Desc: "Pick your scheduled village route to access retail shops.",
     step2Title: "Select Shop",
     step2Desc: "Choose an existing shop or register a new retail outlet.",
-    step3Title: "Voice Order & Save",
-    step3Desc: "Speak retailer orders in Marathi and save in seconds.",
+    step3Title: "Select Items & Order",
+    step3Desc: "Search products with auto-suggestions, set quantities and submit.",
 
     // Village screen
     selectVillage: "Select Village",
