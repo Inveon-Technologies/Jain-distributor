@@ -5,9 +5,11 @@ import { isoDate } from "../../lib/schemas.js";
 import { businessDayRange } from "../../lib/time.js";
 import { parse } from "../../lib/validate.js";
 import { authenticate, requireAdmin } from "../../middleware/auth.js";
+import { reportsRouter } from "./reports.js";
 
 export const dashboardRouter = Router();
 dashboardRouter.use(authenticate, requireAdmin);
+dashboardRouter.use(reportsRouter);
 
 /**
  * GET /dashboard/summary?date=YYYY-MM-DD – the four KPI cards on the admin dashboard (PRD §4):

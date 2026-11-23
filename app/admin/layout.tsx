@@ -15,6 +15,7 @@ import {
   Store,
   ClipboardList,
   Package,
+  BarChart3,
   Menu,
   X,
   LogOut,
@@ -66,6 +67,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       href: "/admin/items",
       label: t.itemMaster,
       icon: Package,
+    },
+    {
+      href: "/admin/reports",
+      label: t.reports,
+      icon: BarChart3,
     },
   ];
 

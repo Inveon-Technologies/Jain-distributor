@@ -14,6 +14,7 @@ export const translations = {
 
     // Common Navigation
     dashboard: "डॅशबोर्ड",
+    reports: "अहवाल व विश्लेषण",
     salespersons: "सेल्समन",
     villages: "गावे",
     shops: "दुकाने",
@@ -248,6 +249,7 @@ export const translations = {
 
     // Common Navigation
     dashboard: "Dashboard",
+    reports: "Reports & Analysis",
     salespersons: "Salespersons",
     villages: "Villages",
     shops: "Shops",
