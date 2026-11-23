@@ -43,6 +43,12 @@ async function listSalespersons(filters: { id?: string; status?: string; q?: str
   const { rows } = await pool.query(
     `SELECT u.id, u.name, u.name_en AS "nameEn", u.email, u.mobile, u.status,
             u.last_login_at AS "lastLoginAt", u.created_at AS "createdAt",
+            COALESCE(u.failed_login_attempts, 0)::int AS "failedLoginAttempts",
+            u.locked_until AS "lockedUntil",
+            CASE WHEN u.locked_until IS NOT NULL AND u.locked_until > now() THEN true ELSE false END AS "isLocked",
+            CASE WHEN u.locked_until IS NOT NULL AND u.locked_until > now()
+                 THEN ceil(EXTRACT(EPOCH FROM (u.locked_until - now())) / 60)::int
+                 ELSE 0 END AS "lockMinutesRemaining",
             COALESCE(v.shops, 0)::int    AS "todayVisits",
             COALESCE(v.villages, 0)::int AS "todayVillageVisits",
             COALESCE(o.orders, 0)::int   AS "todayOrders",
@@ -163,6 +169,30 @@ salespersonsRouter.post("/:id/reset-password", async (req, res) => {
     await hashPassword(newPassword),
   ]);
   res.status(204).end();
+});
+
+/** POST /salespersons/:id/unlock – admin resets failed login attempts and clears lockout. */
+salespersonsRouter.post("/:id/unlock", async (req, res) => {
+  const { id } = parse(idParams, req.params);
+  await getSalesperson(id);
+  await pool.query(
+    "UPDATE users SET failed_login_attempts = 0, locked_until = NULL, updated_at = now() WHERE id = $1",
+    [id],
+  );
+  res.json({ data: await getSalesperson(id), message: "Account unlocked successfully" });
+});
+
+/** POST /salespersons/:id/lock – admin locks a salesperson out for specified minutes. */
+salespersonsRouter.post("/:id/lock", async (req, res) => {
+  const { id } = parse(idParams, req.params);
+  const { minutes } = parse(z.object({ minutes: z.coerce.number().int().min(1).max(10080).default(20) }), req.body ?? {});
+  await getSalesperson(id);
+  const lockUntil = new Date(Date.now() + minutes * 60 * 1000);
+  await pool.query(
+    "UPDATE users SET locked_until = $2, failed_login_attempts = 5, updated_at = now() WHERE id = $1",
+    [id, lockUntil],
+  );
+  res.json({ data: await getSalesperson(id), message: `Account locked for ${minutes} minutes` });
 });
 
 /** Soft delete: the salesperson can no longer log in, but their order history is preserved. */

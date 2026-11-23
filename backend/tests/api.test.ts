@@ -100,6 +100,37 @@ describe("auth", () => {
       .send({ name: "Other", email: "other@jain.com", mobile: "+919000011111", password: "secret1" });
     expect(sameMobile.status).toBe(409);
   });
+
+  it("locks an account after 5 failed password attempts and admin can unlock", async () => {
+    // 4 failed attempts
+    for (let i = 1; i <= 4; i++) {
+      const res = await api().post("/api/v1/auth/login").send({ email: "sachin@jain.com", password: "wrong" });
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe("INVALID_CREDENTIALS");
+    }
+    // 5th failed attempt locks the account
+    const lockedRes = await api().post("/api/v1/auth/login").send({ email: "sachin@jain.com", password: "wrong" });
+    expect(lockedRes.status).toBe(401);
+    expect(lockedRes.body.error.code).toBe("ACCOUNT_LOCKED");
+
+    // Even with correct password, login is blocked
+    const blockedRes = await api().post("/api/v1/auth/login").send({ email: "sachin@jain.com", password: "secret1" });
+    expect(blockedRes.status).toBe(401);
+    expect(blockedRes.body.error.code).toBe("ACCOUNT_LOCKED");
+
+    // Admin lists salespersons and sees the account is locked
+    const spList = await api().get("/api/v1/salespersons").set(auth(admin));
+    const sachin = spList.body.data.find((s: { email: string }) => s.email === "sachin@jain.com");
+    expect(sachin.isLocked).toBe(true);
+
+    // Admin unlocks the salesperson
+    const unlockRes = await api().post(`/api/v1/salespersons/${sachin.id}/unlock`).set(auth(admin));
+    expect(unlockRes.status).toBe(200);
+
+    // Now login succeeds
+    const successRes = await api().post("/api/v1/auth/login").send({ email: "sachin@jain.com", password: "secret1" });
+    expect(successRes.status).toBe(200);
+  });
 });
 
 describe("villages", () => {

@@ -166,9 +166,20 @@ interface ApiSalesperson {
   todayVisits: number;
   todayOrders: number;
   assignedVillages: { id: string }[];
+  failedLoginAttempts?: number;
+  lockedUntil?: string | null;
+  isLocked?: boolean;
+  lockMinutesRemaining?: number;
 }
 
 export function toSalesperson(sp: ApiSalesperson): Salesperson {
+  const isLocked = Boolean(sp.isLocked || (sp.lockedUntil && new Date(sp.lockedUntil) > new Date()));
+  const lockMinutesRemaining = sp.lockMinutesRemaining !== undefined
+    ? sp.lockMinutesRemaining
+    : isLocked && sp.lockedUntil
+    ? Math.max(1, Math.ceil((new Date(sp.lockedUntil).getTime() - Date.now()) / 60000))
+    : 0;
+
   return {
     id: sp.id,
     name: sp.name,
@@ -179,6 +190,10 @@ export function toSalesperson(sp: ApiSalesperson): Salesperson {
     todayVisits: sp.todayVisits ?? 0,
     todayOrders: sp.todayOrders ?? 0,
     assignedVillages: (sp.assignedVillages ?? []).map((v) => v.id),
+    failedLoginAttempts: sp.failedLoginAttempts ?? 0,
+    lockedUntil: sp.lockedUntil ?? null,
+    isLocked,
+    lockMinutesRemaining,
   };
 }
 

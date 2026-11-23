@@ -83,12 +83,36 @@ authRouter.post("/login", loginLimiter, async (req, res) => {
   }
 
   const ids = byMobile ? await usersWithMobile(id) : [];
-  const { rows } = await pool.query<UserRow & { passwordHash: string }>(
-    `SELECT ${USER_COLUMNS}, password_hash AS "passwordHash"
+  const { rows } = await pool.query<
+    UserRow & {
+      passwordHash: string;
+      failedLoginAttempts: number;
+      lockedUntil: string | null;
+    }
+  >(
+    `SELECT ${USER_COLUMNS}, password_hash AS "passwordHash",
+            failed_login_attempts AS "failedLoginAttempts",
+            locked_until AS "lockedUntil"
        FROM users
       WHERE deleted_at IS NULL AND (${byMobile ? "id = ANY($1::uuid[])" : "lower(email) = lower($1)"})`,
     [byMobile ? ids : id],
   );
+
+  if (rows.length === 0) {
+    throw unauthorized("Invalid email/mobile number or password", "INVALID_CREDENTIALS");
+  }
+
+  // Check if account is currently locked out
+  for (const candidate of rows) {
+    if (candidate.lockedUntil && new Date(candidate.lockedUntil) > new Date()) {
+      const remainingMinutes = Math.max(1, Math.ceil((new Date(candidate.lockedUntil).getTime() - Date.now()) / 60000));
+      throw unauthorized(
+        `Account is locked due to 5 consecutive failed login attempts. Try again in ${remainingMinutes} minute(s) or contact administrator.`,
+        "ACCOUNT_LOCKED",
+      );
+    }
+  }
+
   // Older data may have two accounts on one number; the password decides which one it is.
   let user: (typeof rows)[number] | undefined;
   for (const row of rows) {
@@ -98,12 +122,39 @@ authRouter.post("/login", loginLimiter, async (req, res) => {
     }
   }
   if (!user) {
-    throw unauthorized("Invalid email/mobile number or password", "INVALID_CREDENTIALS");
+    const candidate = rows[0];
+    const newAttempts = (candidate.failedLoginAttempts || 0) + 1;
+    if (newAttempts >= 5) {
+      const lockUntil = new Date(Date.now() + 20 * 60 * 1000);
+      await pool.query(
+        "UPDATE users SET failed_login_attempts = $1, locked_until = $2 WHERE id = $3",
+        [newAttempts, lockUntil, candidate.id],
+      );
+      throw unauthorized(
+        "Account has been locked for 20 minutes due to 5 consecutive failed login attempts. Please contact administrator.",
+        "ACCOUNT_LOCKED",
+      );
+    } else {
+      await pool.query(
+        "UPDATE users SET failed_login_attempts = $1 WHERE id = $2",
+        [newAttempts, candidate.id],
+      );
+      const remaining = 5 - newAttempts;
+      throw unauthorized(
+        `Invalid password. ${remaining} attempt(s) remaining before 20-minute account lockout.`,
+        "INVALID_CREDENTIALS",
+      );
+    }
   }
   if (user.status !== "ACTIVE") {
     throw unauthorized("Account is inactive or pending admin approval", "ACCOUNT_INACTIVE");
   }
-  await pool.query("UPDATE users SET last_login_at = now() WHERE id = $1", [user.id]);
+
+  // Reset failed attempts & clear lockout upon successful login
+  await pool.query(
+    "UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_login_at = now() WHERE id = $1",
+    [user.id],
+  );
   res.json({ token: signToken(user), user: await loadProfile(user.id) });
 });
 
