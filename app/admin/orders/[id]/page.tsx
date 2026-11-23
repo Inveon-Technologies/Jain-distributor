@@ -1,11 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { DataGate } from "@/components/common/DataGate";
 import { translations } from "@/data/translations";
 import { BilingualName } from "@/components/common/BilingualName";
+import { apiFetch, toOrder, ApiOrder } from "@/lib/api";
+import { Order } from "@/data/types";
 import {
   ArrowLeft,
   Store,
@@ -23,10 +25,62 @@ export default function OrderDetailsPage() {
   const { language, orders, shops, villages, salespersons } = useApp();
   const t = translations[language];
 
-  const order = orders.find((o) => o.id === orderId);
-  const shop = shops.find((s) => s.id === order?.shopId);
-  const village = villages.find((v) => v.id === order?.villageId);
-  const salesperson = salespersons.find((s) => s.id === order?.salespersonId);
+  const contextOrder = orders.find((o) => o.id === orderId);
+  const [fetchedOrder, setFetchedOrder] = useState<Order | null>(null);
+  const [fetchedMeta, setFetchedMeta] = useState<{ shop?: any; village?: any; salesperson?: any } | null>(null);
+  const [isLoading, setIsLoading] = useState(!contextOrder);
+
+  useEffect(() => {
+    if (!contextOrder && orderId) {
+      setIsLoading(true);
+      apiFetch<{ data: ApiOrder & { shop?: any; village?: any; salesperson?: any } }>(`/orders/${orderId}`)
+        .then((res) => {
+          setFetchedOrder(toOrder(res.data));
+          setFetchedMeta({
+            shop: res.data.shop
+              ? {
+                  id: res.data.shop.id,
+                  name: res.data.shop.name,
+                  nameEn: res.data.shop.nameEn,
+                  owner: res.data.shop.ownerName || "",
+                  ownerEn: res.data.shop.ownerNameEn,
+                  mobile: res.data.shop.mobile || "",
+                  address: res.data.shop.address || "",
+                  villageId: res.data.villageId,
+                }
+              : undefined,
+            village: res.data.village
+              ? {
+                  id: res.data.village.id,
+                  marathiName: res.data.village.marathiName,
+                  englishName: res.data.village.englishName,
+                }
+              : undefined,
+            salesperson: res.data.salesperson
+              ? {
+                  id: res.data.salesperson.id,
+                  name: res.data.salesperson.name,
+                  nameEn: res.data.salesperson.nameEn,
+                  email: "",
+                  mobile: res.data.salesperson.mobile || "",
+                  status: "ACTIVE",
+                }
+              : undefined,
+          });
+        })
+        .catch(() => {
+          setFetchedOrder(null);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [contextOrder, orderId]);
+
+  const order = contextOrder || fetchedOrder;
+  const shop = shops.find((s) => s.id === order?.shopId) || fetchedMeta?.shop;
+  const village = villages.find((v) => v.id === order?.villageId) || fetchedMeta?.village;
+  const salesperson = salespersons.find((s) => s.id === order?.salespersonId) || fetchedMeta?.salesperson;
 
   const handlePrint = () => {
     if (typeof window !== "undefined") {
@@ -36,6 +90,14 @@ export default function OrderDetailsPage() {
 
   const totalQuantity =
     order?.items.reduce((acc, curr) => acc + curr.quantity, 0) || 0;
+
+  if (isLoading) {
+    return (
+      <div className="p-8 text-center text-slate-400">
+        {language === "mr" ? "ऑर्डर लोड होत आहे..." : "Loading order..."}
+      </div>
+    );
+  }
 
   if (!order) {
     return (

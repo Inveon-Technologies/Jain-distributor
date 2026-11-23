@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Bell, ClipboardList, UserPlus, X, BellRing } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { apiFetch } from "@/lib/api";
@@ -133,11 +134,16 @@ export function NotificationBell() {
         if (fresh.some((n) => n.type === "NEW_ORDER")) void refresh();
         if (typeof Notification !== "undefined" && Notification.permission === "granted" && document.hidden) {
           const first = fresh[0];
-          new Notification(mr ? "जैन डिस्ट्रिब्युटर" : "Jain Distributor", {
+          const notif = new Notification(mr ? "जैन डिस्ट्रिब्युटर" : "Jain Distributor", {
             body: fresh.length > 1 ? `${title(first)} (+${fresh.length - 1})` : title(first),
             tag: "jd-admin",
             icon: "/icon.png",
           });
+          notif.onclick = () => {
+            window.focus();
+            const url = first.type === "NEW_ORDER" ? `/admin/orders/${first.id}` : "/admin/salespersons";
+            router.push(url);
+          };
         }
       }
     } catch {
@@ -192,7 +198,8 @@ export function NotificationBell() {
   const go = (n: AppNotification) => {
     markAllRead();
     setOpen(false);
-    router.push(n.type === "NEW_ORDER" ? `/admin/orders/${n.id}` : "/admin/salespersons");
+    const url = n.type === "NEW_ORDER" ? `/admin/orders/${n.id}` : "/admin/salespersons";
+    setTimeout(() => router.push(url), 50);
   };
 
   const enableAlerts = async () => {
@@ -268,11 +275,15 @@ export function NotificationBell() {
               items.map((n) => {
                 const isNew = Date.parse(n.createdAt) > seen;
                 const Icon = n.type === "SIGNUP" ? UserPlus : ClipboardList;
+                const url = n.type === "NEW_ORDER" ? `/admin/orders/${n.id}` : "/admin/salespersons";
                 return (
-                  <button
+                  <Link
                     key={`${n.type}-${n.id}`}
-                    type="button"
-                    onClick={() => go(n)}
+                    href={url}
+                    onClick={() => {
+                      markAllRead();
+                      setOpen(false);
+                    }}
                     className={`w-full flex items-start gap-3 px-4 py-3 text-left border-b border-slate-50 hover:bg-slate-50 cursor-pointer ${
                       isNew ? "bg-emerald-50/60" : ""
                     }`}
@@ -290,7 +301,7 @@ export function NotificationBell() {
                       <span className="block text-[11px] text-slate-400 mt-0.5">{timeAgo(n.createdAt, mr)}</span>
                     </span>
                     {isNew && <span className="mt-2 w-2 h-2 rounded-full bg-red-500 shrink-0" />}
-                  </button>
+                  </Link>
                 );
               })
             )}
