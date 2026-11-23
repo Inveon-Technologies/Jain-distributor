@@ -10,6 +10,10 @@ export interface Salesperson {
   todayVisits: number;
   todayOrders: number;
   assignedVillages: string[];
+  failedLoginAttempts?: number;
+  lockedUntil?: string | null;
+  isLocked?: boolean;
+  lockMinutesRemaining?: number;
 }
 
 export interface Village {

@@ -14,11 +14,13 @@ export const translations = {
 
     // Common Navigation
     dashboard: "डॅशबोर्ड",
+    reports: "अहवाल व विश्लेषण",
     salespersons: "सेल्समन",
     villages: "गावे",
     shops: "दुकाने",
     orders: "ऑर्डर्स",
     itemMaster: "आयटम मास्टर",
+    backup: "बॅकअप व रिस्टोअर",
     mainMenu: "मुख्य मेनू",
     home: "मुख्य पान",
     profile: "माझे प्रोफाइल",
@@ -99,8 +101,8 @@ export const translations = {
     step1Desc: "नियोजित गाव निवडून दुकानांची यादी पहा.",
     step2Title: "दुकान निवडा",
     step2Desc: "दुकान निवडा किंवा नवीन दुकान नोंदणी करा.",
-    step3Title: "ऑर्डर बोला आणि जतन करा",
-    step3Desc: "दुकानदाराची ऑर्डर मराठीत बोला व एका क्लिकवर जतन करा.",
+    step3Title: "ऑर्डर निवडा आणि जतन करा",
+    step3Desc: "वस्तू आपोआप शोधून प्रमाण निवडा व एका क्लिकवर जतन करा.",
 
     // Village screen
     selectVillage: "गाव निवडा",
@@ -248,11 +250,13 @@ export const translations = {
 
     // Common Navigation
     dashboard: "Dashboard",
+    reports: "Reports & Analysis",
     salespersons: "Salespersons",
     villages: "Villages",
     shops: "Shops",
     orders: "Orders",
     itemMaster: "Item Master",
+    backup: "Backup & Restore",
     mainMenu: "Main Navigation",
     home: "Home",
     profile: "Profile",
@@ -333,8 +337,8 @@ export const translations = {
     step1Desc: "Pick your scheduled village route to access retail shops.",
     step2Title: "Select Shop",
     step2Desc: "Choose an existing shop or register a new retail outlet.",
-    step3Title: "Voice Order & Save",
-    step3Desc: "Speak retailer orders in Marathi and save in seconds.",
+    step3Title: "Select Items & Order",
+    step3Desc: "Search products with auto-suggestions, set quantities and submit.",
 
     // Village screen
     selectVillage: "Select Village",

@@ -6,11 +6,25 @@ import { translations } from "@/data/translations";
 import { autoBilingualName, formatBilingual } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
 import { Salesperson } from "@/data/types";
-import { Users, Phone, Mail, CheckCircle2, Plus, X, UserPlus, Check, Trash2, Eye, EyeOff, Clock, Pencil, KeyRound } from "lucide-react";
+import { Users, Phone, Mail, CheckCircle2, Plus, X, UserPlus, Check, Trash2, Eye, EyeOff, Clock, Pencil, KeyRound, Lock, Unlock } from "lucide-react";
 
 export default function AdminSalespersonsPage() {
-  const { language, salespersons, villages, addSalesperson, updateSalesperson, deleteSalesperson, toggleSalespersonStatus, resetSalespersonPassword } = useApp();
+  const { language, salespersons, villages, addSalesperson, updateSalesperson, deleteSalesperson, toggleSalespersonStatus, resetSalespersonPassword, unlockSalesperson, lockSalesperson } = useApp();
   const t = translations[language];
+
+  const [lockActionId, setLockActionId] = useState<string | null>(null);
+
+  const handleUnlock = async (spId: string) => {
+    setLockActionId(spId);
+    await unlockSalesperson(spId);
+    setLockActionId(null);
+  };
+
+  const handleLock = async (spId: string) => {
+    setLockActionId(spId);
+    await lockSalesperson(spId, 20);
+    setLockActionId(null);
+  };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [spToDelete, setSpToDelete] = useState<Salesperson | null>(null);
@@ -201,6 +215,28 @@ export default function AdminSalespersonsPage() {
                     <KeyRound className="w-4 h-4" />
                   </button>
 
+                  {sp.isLocked ? (
+                    <button
+                      type="button"
+                      disabled={lockActionId === sp.id}
+                      onClick={() => handleUnlock(sp.id)}
+                      title={language === "mr" ? "खाते अनलॉक करा" : "Unlock account"}
+                      className="p-1.5 text-red-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition cursor-pointer"
+                    >
+                      <Unlock className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={lockActionId === sp.id}
+                      onClick={() => handleLock(sp.id)}
+                      title={language === "mr" ? "20 मिनिटांसाठी लॉक करा" : "Lock for 20 minutes"}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition cursor-pointer"
+                    >
+                      <Lock className="w-4 h-4" />
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => setSpToDelete(sp)}
@@ -241,6 +277,29 @@ export default function AdminSalespersonsPage() {
                   )}
                 </button>
               </div>
+
+              {/* Account Lock Alert Banner */}
+              {sp.isLocked && (
+                <div className="mt-3 flex items-center justify-between bg-red-50 border border-red-200 text-red-800 px-3 py-2 rounded-xl text-xs font-bold">
+                  <div className="flex items-center gap-1.5">
+                    <Lock className="w-4 h-4 text-red-600 shrink-0" />
+                    <span>
+                      {language === "mr"
+                        ? `खाते लॉक आहे (${sp.lockMinutesRemaining || 20} मि. शिल्लक)`
+                        : `Account Locked (${sp.lockMinutesRemaining || 20}m left)`}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={lockActionId === sp.id}
+                    onClick={() => handleUnlock(sp.id)}
+                    className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] shadow-xs cursor-pointer transition flex items-center gap-1"
+                  >
+                    <Unlock className="w-3.5 h-3.5" />
+                    <span>{lockActionId === sp.id ? "..." : language === "mr" ? "अनलॉक करा" : "Unlock"}</span>
+                  </button>
+                </div>
+              )}
 
               {/* Contact info */}
               <div className="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600">

@@ -51,6 +51,8 @@ interface AppContextType {
   orders: Order[];
   salespersons: Salesperson[];
   toggleSalespersonStatus: (salespersonId: string) => Promise<Result>;
+  unlockSalesperson: (salespersonId: string) => Promise<Result>;
+  lockSalesperson: (salespersonId: string, minutes?: number) => Promise<Result>;
   /** Salesperson changing their own password (needs the current one). */
   changePassword: (currentPassword: string, newPassword: string) => Promise<Result>;
   /** Admin setting a salesperson's password. */
@@ -320,6 +322,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const unlockSalesperson = (salespersonId: string) =>
+    mutate(
+      () => apiFetch(`/salespersons/${salespersonId}/unlock`, { method: "POST" }),
+      loadSalespersons,
+    );
+
+  const lockSalesperson = (salespersonId: string, minutes: number = 20) =>
+    mutate(
+      () => apiFetch(`/salespersons/${salespersonId}/lock`, { method: "POST", body: { minutes } }),
+      loadSalespersons,
+    );
+
   const resetSalespersonPassword = (salespersonId: string, newPass: string) =>
     mutate(
       () => apiFetch(`/salespersons/${salespersonId}/reset-password`, { method: "POST", body: { newPassword: newPass } }),
@@ -436,6 +450,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateSalesperson,
         deleteSalesperson,
         toggleSalespersonStatus,
+        unlockSalesperson,
+        lockSalesperson,
         changePassword,
         resetSalespersonPassword,
         createOrder,
