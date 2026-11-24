@@ -1,0 +1,172 @@
+# Changelog
+
+All notable changes to the Jain Distributor – Sales Field Management System are documented here.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
+[Semantic Versioning](https://semver.org/). Each `## [x.y.z]` section becomes the GitHub Release
+notes when the matching `vx.y.z` tag is pushed.
+
+## [Unreleased]
+
+### Removed
+
+- Voice ordering is gone: the `/voice/transcribe` and `/voice/config` endpoints, the speech-to-text
+  providers (Google, ElevenLabs, browser, mock), the recorder in the web app and every `STT_*`,
+  `GOOGLE_SPEECH_API_KEY`, `ELEVENLABS_*` and `MAX_AUDIO_MB` setting. Salespersons type in the Item
+  Master search. `POST /voice/parse` moved to `POST /items/parse`.
+
+### Fixed
+
+- Dashboard numbers disagreed. The cards, the Salespersons table and the Villages table now all
+  ignore cancelled orders and removed salespersons, and the dashboard reloads all of them together
+  every 30 seconds instead of showing tables loaded once at login. The salesperson's own
+  "orders recorded" count no longer includes cancelled orders.
+- A request body over the size limit answered 500; it now answers 413. A full JSON backup can be
+  restored (the restore route accepts up to 20 MB).
+- The web lint and type checks pass again (CI's web job was failing).
+
+### Added
+
+- `deploy/update-server.sh`: backs up the database, deploys a git ref and rebuilds the images on a
+  server that builds its own images.
+
+### Fixed
+
+- The admin notification bell was only a picture with a dot that never changed. It now lists new
+  voice orders and salesperson sign-ups waiting for approval from the last 3 days, shows an unread
+  count, checks for new ones every 30 seconds, plays a short chime and refreshes the dashboard
+  when an order arrives, and can show a phone/desktop alert when the app is in the background.
+  New endpoint: `GET /api/v1/notifications` (admin only).
+
+### Added
+
+- Log in with a mobile number as well as an email. Any common format works ("98220 12345",
+  "+91 98220 12345", "098220-12345"). Two live accounts can no longer share a mobile number.
+- Admins can set a new password for any salesperson from the key button on the Salespersons
+  page. "Forgot password?" on the login screen now says to ask the admin instead of claiming a
+  reset link was sent.
+
+### Removed
+
+- All demo data: the frontend mock data (`data/mockData.ts`), the backend demo seed
+  (`npm run seed`), sample order text/items and placeholder names, KPIs and phone numbers.
+  `deploy/clear-demo-data.sql` clears demo rows from an existing database (admins are kept).
+
+### Changed
+
+- The web app now uses the real API: login/registration, villages, shops, salespersons, orders,
+  visits and dashboard KPIs are loaded from and saved to the backend (`lib/api.ts`). Pages
+  redirect to the login screen without a session. The fake "Sign in with Google" button is gone.
+- Salespersons can edit shop details from the field (not the credit balance); orders list
+  accepts `pageSize` up to 500.
+
+### Added
+
+- Item Master (admin → आयटम मास्टर): the distributor's 3,996 products, imported from the shop's
+  item list (cleaned: blank and header rows, doubled spaces, exact duplicates and "CASH" dropped;
+  `PACKET`/`PCKET`/`PK` → `PKT`, `PATI` → `PATTI`, `1KG` → `1 KG`, "RS : 73" → "RS 73"; MRP and
+  pieces per pack read out). Admins search, add, edit, deactivate and import items, set a
+  Marathi name and spoken aliases, and can test how a spoken phrase is matched.
+- Item Master export: "Export (Excel/CSV)" downloads the whole list (name, packing, MRP, Marathi
+  name, spoken names, status) as a CSV that opens in Excel. The same file can be edited and
+  imported back; with "update existing items" ticked, matching items get the file's MRP, Marathi
+  name, spoken names and status. Imports read a header row (`name`, `packing`, `mrp`/`price`, …).
+- Voice orders keep only Item Master products. Spoken lines that match no item (background talk,
+  greetings, products the distributor does not sell) are left out of the order and shown on the
+  review screen under "आयटम मास्टरमध्ये नसल्याने वगळले". Describing words ("मोठा", "थोडे") no
+  longer outweigh the brand name.
+- Voice orders suggest Item Master products for every line. Marathi speech is matched to the
+  English item names by sound ("पार्ले जी" ≈ PARLE G, "व्हॅसलीन" ≈ VASELINE), Marathi meanings
+  ("साबण" = SOAP, "बाळाचा" = BABY), prices ("दहा रुपये" / "दहाचे" = ₹10, no longer taken as the
+  quantity) and pack sizes ("शंभर मिली"). The best match is picked when confident; the salesperson
+  can change it from the suggestions or by searching, and a hand-picked item learns the spoken
+  name as an alias. Item Master words are also sent to the speech recogniser as hints.
+- Background talk is kept out of voice orders: press and hold the mic to speak (a tap still
+  toggles), each press adds to the order, and talk with no product, unit or number word ("अरे तू
+  कधी आलास") is left out and shown separately with an "add to order" button. Server-side
+  recordings also turn down voices much quieter than the salesperson's.
+- Spoken orders are rewritten as one item per line with digit quantities ("रवा 1 किलो") right
+  after recording, without punctuation. Run-on speech is split into separate items more reliably,
+  repeated words ("शेंगदाणा शेंगदाणे") are collapsed, "पावशेर" reads as 250 g and "जुडी" (bunch) is a
+  unit. Vegetables such as कांदा, लसूण, आले and कोथिंबीर are recognised products.
+- More speech-to-text choices via `STT_PROVIDER`: `browser` recognises Marathi on the phone itself
+  (Chrome/Edge, free, no key, text appears while speaking) and `elevenlabs` uses ElevenLabs Scribe
+  with kirana keyterms. `GET /voice/config` tells the app which one is active. Production now
+  defaults to `browser`, and the app falls back to it when no server engine is configured.
+- Real Marathi voice recording on the order screen (it was a simulation before). The phone's noise
+  suppression, echo cancellation and auto gain are switched on, rumble and hiss are filtered out,
+  silence is trimmed and the order is sent as 16 kHz lossless WAV for best recognition.
+- Speech-to-text accuracy tuning: Google's `latest_long` model, boosted kirana vocabulary (products,
+  brands, units, Marathi numbers, plus `STT_EXTRA_PHRASES`), three alternatives re-ranked by how
+  well they read as order lines, and word-level confidence. Unsure words are highlighted and the
+  transcript is editable before review. Hindi/English auto-detect is now off by default.
+- VPS deployment kit in `deploy/`: Caddy reverse proxy with automatic HTTPS, production `.env`
+  template, one-time server setup script, nightly database backups and a step-by-step guide.
+- Production domain set to `jaindistributor.in` (`www.` redirects): published web images call
+  `https://jaindistributor.in/api/v1`, and the API allows both https origins by default.
+
+### Changed
+
+- Repository renamed from `Jain-distributor-web` to `Jain-distributor`. Published images are now
+  `ghcr.io/inveon-technologies/jain-distributor-api` and `…/jain-distributor-web`.
+
+### Fixed
+
+- Voice orders no longer show the fixed sample sentence ("दहा किलो रवा, पार्ले बिस्किट…") with a
+  fake 100% accuracy when the server runs `STT_PROVIDER=mock`. In production the API now answers
+  503 `STT_NOT_CONFIGURED` and the order screen asks the salesperson to type the order until
+  Google Speech-to-Text is configured.
+
+## [1.0.0] - 2026-10-26
+
+First MVP release (PRD INV-JDS-PRD-01, Phase 1 scope): backend API, containers and CI/CD.
+
+### Added
+
+- **Backend API** (`backend/`): Node.js 22, Express 5, TypeScript and PostgreSQL 16, versioned under `/api/v1`.
+  - Email/password login for admins and salespersons with JWT bearer tokens, `GET /auth/me` and
+    change password. Deactivating a salesperson blocks their existing tokens immediately.
+  - Salesperson self sign-up that stays inactive until an admin activates it.
+  - Admin management of salespersons (create, edit, assign villages, activate/deactivate, reset
+    password, delete) with each person's visits and orders for the day.
+  - Village and shop CRUD. Salespersons can add a new shop from the field ("नवीन दुकान जोडा");
+    only admins can edit or delete shops or set credit balances.
+  - Voice orders: `POST /voice/transcribe` accepts the browser recording, runs Marathi (`mr-IN`)
+    speech-to-text and returns the transcript plus items it read from it ("रवा – 10 किलो | …").
+    `POST /voice/parse` re-reads the text after the salesperson edits it.
+  - Marathi order parser: reads number words (दहा, वीस, पन्नास, पाचशे, दोन हजार), fractions
+    (दीड, अडीच, साडे, सव्वा, पावणे, पाव), Devanagari and ASCII digits, common units
+    (किलो, ग्रॅम, लिटर, पॅकेट, बॉक्स, नग, डझन, पोते, बाटली, …) and English labels for common
+    kirana items.
+  - Orders (`ORD-1001`, `ORD-1002`, …) with the original transcript, reviewed items and the
+    CONFIRMED → DELIVERED / CANCELLED lifecycle. Admins can search and filter by date, salesperson,
+    village, shop and status, and can correct items. Salespersons only see their own orders.
+  - Visit tracking: village and shop check-ins, plus one automatic shop visit for every saved order.
+  - Admin dashboard: active salespersons out of total, village visits, shops visited and orders for
+    the day (IST), with per-village and per-salesperson tables and recent voice orders.
+  - Speech-to-text providers: `google` (Google Cloud Speech-to-Text, Marathi) and `mock` for
+    development and demos.
+  - SQL migrations that run automatically on start, a bootstrap admin from environment variables
+    and an optional demo seed matching the frontend's mock data.
+  - Health endpoints `/health` (liveness) and `/health/ready` (database check).
+  - Security: helmet headers, CORS allow-list, bcrypt password hashes, rate-limited login and
+    sign-up, input validation on every endpoint, and log redaction of credentials.
+  - 49 automated tests: unit tests for the Marathi parser and speech provider, and API tests
+    against a real PostgreSQL.
+- **Docker**: multi-stage images for the API and the Next.js web app (standalone output), both
+  running as a non-root user with health checks, and `docker-compose.yml` that runs
+  PostgreSQL, the API and the web app together.
+- **Production compose** (`deploy/docker-compose.prod.yml`) that runs the published images on a
+  single server.
+- **CI** (`.github/workflows/ci.yml`): web lint, typecheck and build; API lint, typecheck, tests on
+  PostgreSQL and build; Docker image builds on every PR, pushed to GHCR from `main`.
+- **Release pipeline** (`.github/workflows/release.yml`): on a `v*.*.*` tag it publishes versioned
+  images to GHCR, creates the GitHub Release from this changelog and can deploy over SSH.
+
+### Changed
+
+- Next.js upgraded from 14.2.15 to 14.2.35, which includes the December 2025 security fixes.
+- Next.js builds with `output: "standalone"` for the container image.
+
+### Fixed
+
+- Unused imports in eleven frontend pages that made `npm run lint` fail.

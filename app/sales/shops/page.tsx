@@ -1,0 +1,363 @@
+"use client";
+
+import React, { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useApp } from "@/context/AppContext";
+import { DataGate } from "@/components/common/DataGate";
+import { translations } from "@/data/translations";
+import { Shop } from "@/data/types";
+import { BilingualName } from "@/components/common/BilingualName";
+import { autoBilingualName } from "@/utils/transliterate";
+import {
+  Store,
+  MapPin,
+  Plus,
+  Phone,
+  ShoppingCart,
+  ArrowRight,
+  ArrowLeft,
+  Search,
+  Pencil,
+  X,
+  Check,
+} from "lucide-react";
+
+function ShopsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { language, villages, shops, updateShop, selectedVillage, setSelectedVillage, setSelectedShop } = useApp();
+  const t = translations[language];
+
+  const villageParam = searchParams.get("village");
+  const currentVillage = villages.find((v) => v.id === villageParam) || selectedVillage || villages[0];
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [shopToEdit, setShopToEdit] = useState<Shop | null>(null);
+
+  const [editShopName, setEditShopName] = useState("");
+  const [editOwnerName, setEditOwnerName] = useState("");
+  const [editMobile, setEditMobile] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+
+  const openEditModal = (s: Shop) => {
+    setShopToEdit(s);
+    setEditShopName(language === "en" ? (s.nameEn || s.name) : (s.name || s.nameEn));
+    setEditOwnerName(language === "en" ? (s.ownerEn || s.owner) : (s.owner || s.ownerEn));
+    setEditMobile(s.mobile);
+    setEditAddress(language === "en" ? (s.addressEn || s.address) : (s.address || s.addressEn));
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shopToEdit || !editShopName.trim() || !editOwnerName.trim()) return;
+
+    const shopPair = autoBilingualName(editShopName);
+    const ownerPair = autoBilingualName(editOwnerName);
+    const addressPair = autoBilingualName(editAddress);
+
+    updateShop(shopToEdit.id, {
+      name: shopPair.mr,
+      nameEn: shopPair.en,
+      owner: ownerPair.mr,
+      ownerEn: ownerPair.en,
+      mobile: editMobile.trim() || shopToEdit.mobile,
+      address: addressPair.mr,
+      addressEn: addressPair.en,
+    });
+
+    setShopToEdit(null);
+  };
+
+  const villageShops = shops.filter((s) => s.villageId === currentVillage.id);
+  const filteredShops = villageShops.filter((s) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      s.name.toLowerCase().includes(q) ||
+      s.owner.toLowerCase().includes(q) ||
+      (s.nameEn && s.nameEn.toLowerCase().includes(q)) ||
+      (s.ownerEn && s.ownerEn.toLowerCase().includes(q))
+    );
+  });
+
+  const handleStartOrder = (shop: Shop) => {
+    setSelectedShop(shop);
+    setSelectedVillage(currentVillage);
+    router.push(`/sales/order/record?shop=${shop.id}`);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Top Banner with Active Village */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-brand-primary flex items-center justify-center font-bold">
+            <MapPin className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-xs font-bold text-slate-400 uppercase">
+              {t.selectVillage}
+            </span>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+              <BilingualName
+                mr={currentVillage.marathiName}
+                en={currentVillage.englishName}
+                secondaryClassName="text-sm sm:text-base font-normal text-slate-500 ml-2"
+              />
+            </h1>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => router.push("/sales/villages")}
+            className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>{t.switchVillage}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => router.push(`/sales/shops/new?village=${currentVillage.id}`)}
+            className="px-4 py-2 rounded-xl bg-brand-primary hover:bg-brand-deep text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t.addNewShop}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={language === "mr" ? "दुकान किंवा मालकाचे नाव शोधा..." : "Search shops by name or owner..."}
+          className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+        />
+      </div>
+
+      {/* Shop Cards Grid */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">
+          {t.shopsInVillage} ({filteredShops.length})
+        </h2>
+
+        {filteredShops.length === 0 ? (
+          <div className="bg-white p-8 rounded-3xl border border-dashed border-slate-200 text-center space-y-3">
+            <Store className="w-10 h-10 text-slate-300 mx-auto" />
+            <p className="text-slate-500 text-sm font-medium">
+              {t.noShopsFound}
+            </p>
+            <button
+              onClick={() => router.push(`/sales/shops/new?village=${currentVillage.id}`)}
+              className="px-4 py-2 rounded-xl bg-brand-primary text-white text-xs font-bold"
+            >
+              + {t.addNewShop}
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredShops.map((shop) => {
+              const displayAddress = language === "en" ? (shop.addressEn || shop.address) : shop.address;
+
+              return (
+                <div
+                  key={shop.id}
+                  className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:border-emerald-300 hover:shadow-md transition flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-brand-primary flex items-center justify-center shrink-0">
+                          <Store className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-slate-900 leading-tight">
+                            <BilingualName
+                              mr={shop.name}
+                              en={shop.nameEn}
+                              secondaryClassName="text-xs sm:text-sm font-normal text-slate-500 ml-1.5"
+                            />
+                          </h3>
+                          <span className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+                            <span>{t.shopOwner}:</span>
+                            <BilingualName
+                              mr={shop.owner}
+                              en={shop.ownerEn}
+                              className="font-bold text-slate-700"
+                              secondaryClassName="text-[11px] font-normal text-slate-400 ml-1"
+                            />
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(shop)}
+                        title={t.editShop}
+                        className="p-1.5 text-slate-400 hover:text-brand-primary hover:bg-emerald-50 rounded-xl transition cursor-pointer shrink-0"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Details */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col gap-1.5 text-xs text-slate-600">
+                      <p className="truncate text-slate-500">
+                        📍 {displayAddress}
+                      </p>
+                      <p className="text-slate-500 flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{shop.mobile}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Primary Action Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleStartOrder(shop)}
+                    className="w-full mt-5 py-3 px-4 rounded-xl bg-brand-primary hover:bg-brand-deep text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.99] transition"
+                  >
+                    <ShoppingCart className="w-4 h-4 text-emerald-300" />
+                    <span>{t.recordOrderForShop}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {/* Edit Shop Modal */}
+      {shopToEdit && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-100 space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-brand-primary flex items-center justify-center shrink-0">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-900">
+                    {t.editShop}
+                  </h3>
+                  <span className="text-xs text-slate-500 font-medium">
+                    {t.editModalTitle}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShopToEdit(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {t.shopNameLabel} *
+                </label>
+                <input
+                  type="text"
+                  value={editShopName}
+                  onChange={(e) => setEditShopName(e.target.value)}
+                  placeholder="e.g. Mahavir Kirana"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                  required
+                  autoFocus
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {language === "mr"
+                    ? "इंग्रजी किंवा मराठीत नाव टाका, दोन्ही भाषांत आपोआप सेव्ह होईल."
+                    : "Type in English or Marathi, will auto-save in both languages."}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {t.ownerNameLabel} *
+                </label>
+                <input
+                  type="text"
+                  value={editOwnerName}
+                  onChange={(e) => setEditOwnerName(e.target.value)}
+                  placeholder="e.g. Varsha Patil, Kedar"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {t.mobileLabel}
+                </label>
+                <input
+                  type="tel"
+                  value={editMobile}
+                  onChange={(e) => setEditMobile(e.target.value)}
+                  placeholder="+91 98220 00000"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  {t.addressLabel}
+                </label>
+                <input
+                  type="text"
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  placeholder="e.g. Near Bus Stand, Main Road"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShopToEdit(null)}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 cursor-pointer"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-brand-primary hover:bg-brand-deep text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{t.saveChanges}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ShopsContentGate() {
+  const { villages } = useApp();
+  return (
+    <DataGate ready={villages.length > 0} emptyMr="तुम्हाला अजून कोणतेही गाव नेमलेले नाही. कृपया प्रशासकाशी संपर्क साधा." emptyEn="No villages are available yet. Please ask the admin to add or assign villages.">
+      <ShopsContent />
+    </DataGate>
+  );
+}
+
+export default function ShopsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading...</div>}>
+      <ShopsContentGate />
+    </Suspense>
+  );
+}
