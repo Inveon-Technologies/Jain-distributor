@@ -237,7 +237,7 @@ export function formatDateTime(iso: string): string {
   });
 }
 
-interface ApiOrder {
+export interface ApiOrder {
   id: string;
   displayId: string;
   salespersonId: string;

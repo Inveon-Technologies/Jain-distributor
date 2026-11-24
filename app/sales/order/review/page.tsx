@@ -189,7 +189,7 @@ function OrderReviewContent() {
     setIsParsing(true);
     setError("");
     try {
-      const { data } = await apiFetch<{ data: { items: ApiOrderItem[]; notInMaster?: string[] } }>("/voice/parse", {
+      const { data } = await apiFetch<{ data: { items: ApiOrderItem[]; notInMaster?: string[] } }>("/items/parse", {
         method: "POST",
         body: { text },
       });
@@ -206,7 +206,7 @@ function OrderReviewContent() {
     const savedText = sessionStorage.getItem("current_order_text") || "";
     setOrderText(savedText);
 
-    // If the record page stored structured items directly, skip /voice/parse entirely.
+    // If the record page stored structured items directly, skip /items/parse entirely.
     const savedItems = sessionStorage.getItem("current_order_items");
     if (savedItems) {
       try {

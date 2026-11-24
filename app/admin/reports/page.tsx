@@ -11,12 +11,9 @@ import {
   Users,
   Package,
   MapPin,
-  TrendingUp,
   RefreshCw,
   ShoppingBag,
-  Store,
   Layers,
-  Medal,
 } from "lucide-react";
 
 type PeriodType = "day" | "week" | "month" | "all";
@@ -118,7 +115,7 @@ export default function ReportsPage() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(downloadUrl);
-    } catch (err) {
+    } catch {
       alert(mr ? "अहवाल डाउनलोड करताना त्रुटी आली." : "Could not export report. Please try again.");
     } finally {
       setExporting(false);
@@ -360,7 +357,7 @@ export default function ReportsPage() {
                         {idx > 2 && idx + 1}
                       </td>
                       <td className="py-3 px-4 font-bold text-slate-900">
-                        <BilingualName mr={sp.name} en={sp.nameEn} />
+                        <BilingualName mr={sp.name} en={sp.nameEn ?? undefined} />
                       </td>
                       <td className="py-3 px-4 text-slate-500 font-mono text-xs">{sp.mobile || "-"}</td>
                       <td className="py-3 px-4 text-center">

@@ -136,7 +136,7 @@ export const translations = {
     selectVillagePrompt: "गाव निवडा",
     saveShopBtn: "दुकान जतन करा",
 
-    // Order Record (Voice Mic)
+    // Order Record
     recordOrderTitle: "ऑर्डर बोला",
     tapToSpeak: "बोलण्यासाठी माइकवर टॅप करा",
     speakClearly: "दुकानदाराची ऑर्डर मराठीत स्पष्ट बोला",
@@ -372,8 +372,8 @@ export const translations = {
     selectVillagePrompt: "Select Village",
     saveShopBtn: "Save Shop",
 
-    // Order Record (Voice Mic)
-    recordOrderTitle: "Voice Order",
+    // Order Record
+    recordOrderTitle: "New Order",
     tapToSpeak: "Tap microphone to speak order",
     speakClearly: "Speak the retailer's order in Marathi clearly",
     recordingIdle: "Tap microphone and start speaking",
@@ -386,7 +386,7 @@ export const translations = {
     reviewOrderTitle: "Review Order",
     reviewSubtitle: "Verify spoken transcript and item quantities before saving",
     recordingFinished: "Recording Completed",
-    transcribedSpeechText: "Recorded Voice Transcript",
+    transcribedSpeechText: "Order Items",
     detectedItems: "Itemized Products",
     reRecord: "Re-record",
     saveOrder: "Save & Confirm Order",
@@ -431,7 +431,7 @@ export const translations = {
     addVillageBtn: "Add New Village",
     addSalespersonBtn: "Add Salesperson",
     manageOrders: "Orders Management",
-    recordedTextLabel: "Recorded Voice Transcript",
+    recordedTextLabel: "Order Items",
     orderDetails: "Order Details",
     backToOrders: "Back to Orders",
     allVillages: "All Villages",

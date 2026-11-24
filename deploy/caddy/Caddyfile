@@ -17,7 +17,7 @@
 		-Server
 	}
 
-	# Voice recordings are uploaded to the API; keep a little headroom over MAX_AUDIO_MB.
+	# Request body limit (order and Item Master import payloads are small JSON).
 	request_body {
 		max_size 20MB
 	}

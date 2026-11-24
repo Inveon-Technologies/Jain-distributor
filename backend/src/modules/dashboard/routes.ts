@@ -20,19 +20,32 @@ dashboardRouter.use(exportRouter);
 dashboardRouter.get("/summary", async (req, res) => {
   const { date: requested } = parse(z.object({ date: isoDate.optional() }), req.query);
   const { date, start, end } = businessDayRange(requested);
+  // Every "today" figure uses the same rules as the Salespersons and Villages tables below the cards:
+  // removed salespersons and villages are left out and cancelled orders are not counted. Otherwise the
+  // cards and the tables add up to different totals.
   const { rows } = await pool.query(
-    `SELECT
+    `WITH day_visits AS (
+       SELECT vi.salesperson_id, vi.village_id, vi.shop_id
+         FROM visits vi
+         JOIN users u ON u.id = vi.salesperson_id AND u.deleted_at IS NULL
+         JOIN villages v ON v.id = vi.village_id AND v.deleted_at IS NULL
+        WHERE vi.visited_at >= $1 AND vi.visited_at < $2
+     ), day_orders AS (
+       SELECT o.id
+         FROM orders o
+         JOIN users u ON u.id = o.salesperson_id AND u.deleted_at IS NULL
+         JOIN villages v ON v.id = o.village_id AND v.deleted_at IS NULL
+        WHERE o.created_at >= $1 AND o.created_at < $2 AND o.status <> 'CANCELLED'
+     )
+     SELECT
        (SELECT count(*) FROM users WHERE role = 'SALESPERSON' AND deleted_at IS NULL AND status = 'ACTIVE')::int
          AS "activeSalespersons",
        (SELECT count(*) FROM users WHERE role = 'SALESPERSON' AND deleted_at IS NULL)::int AS "totalSalespersons",
-       (SELECT count(DISTINCT salesperson_id) FROM visits WHERE visited_at >= $1 AND visited_at < $2)::int
-         AS "salespersonsInFieldToday",
-       (SELECT count(*) FROM (SELECT DISTINCT salesperson_id, village_id FROM visits
-                               WHERE visited_at >= $1 AND visited_at < $2) t)::int AS "villageVisitsToday",
-       (SELECT count(DISTINCT shop_id) FROM visits WHERE visited_at >= $1 AND visited_at < $2)::int
-         AS "shopsVisitedToday",
-       (SELECT count(*) FROM orders WHERE created_at >= $1 AND created_at < $2 AND status <> 'CANCELLED')::int
-         AS "ordersToday",
+       (SELECT count(DISTINCT salesperson_id) FROM day_visits)::int AS "salespersonsInFieldToday",
+       (SELECT count(*) FROM (SELECT DISTINCT salesperson_id, village_id FROM day_visits) t)::int
+         AS "villageVisitsToday",
+       (SELECT count(DISTINCT shop_id) FROM day_visits)::int AS "shopsVisitedToday",
+       (SELECT count(*) FROM day_orders)::int AS "ordersToday",
        (SELECT count(*) FROM villages WHERE deleted_at IS NULL)::int AS "totalVillages",
        (SELECT count(*) FROM shops WHERE deleted_at IS NULL)::int AS "totalShops"`,
     [start, end],
@@ -40,7 +53,7 @@ dashboardRouter.get("/summary", async (req, res) => {
   res.json({ data: { date, ...rows[0] } });
 });
 
-/** GET /dashboard/recent-orders – latest voice orders for the "Recent Voice Orders" panel. */
+/** GET /dashboard/recent-orders – latest orders for the "Recent Orders" panel. */
 dashboardRouter.get("/recent-orders", async (req, res) => {
   const { limit } = parse(z.object({ limit: z.coerce.number().int().min(1).max(50).default(10) }), req.query);
   const { rows } = await pool.query(

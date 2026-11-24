@@ -43,11 +43,13 @@ async function listVillages(f: { id?: string; status?: string; q?: string; date?
             COALESCE(vs.shops, 0)::int  AS "shopsVisitedToday",
             COALESCE(o.orders, 0)::int  AS "ordersToday"
        FROM villages v
-       LEFT JOIN (SELECT village_id, count(DISTINCT salesperson_id) AS visits, count(DISTINCT shop_id) AS shops
-                    FROM visits WHERE visited_at >= $1 AND visited_at < $2 GROUP BY village_id) vs
+       LEFT JOIN (SELECT vi.village_id, count(DISTINCT vi.salesperson_id) AS visits, count(DISTINCT vi.shop_id) AS shops
+                    FROM visits vi JOIN users u ON u.id = vi.salesperson_id AND u.deleted_at IS NULL
+                   WHERE vi.visited_at >= $1 AND vi.visited_at < $2 GROUP BY vi.village_id) vs
               ON vs.village_id = v.id
-       LEFT JOIN (SELECT village_id, count(*) AS orders FROM orders
-                   WHERE created_at >= $1 AND created_at < $2 AND status <> 'CANCELLED' GROUP BY village_id) o
+       LEFT JOIN (SELECT o.village_id, count(*) AS orders FROM orders o
+                    JOIN users u ON u.id = o.salesperson_id AND u.deleted_at IS NULL
+                   WHERE o.created_at >= $1 AND o.created_at < $2 AND o.status <> 'CANCELLED' GROUP BY o.village_id) o
               ON o.village_id = v.id
       WHERE v.deleted_at IS NULL
         AND ($3::uuid IS NULL OR v.id = $3)

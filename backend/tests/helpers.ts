@@ -3,11 +3,10 @@ import { createApp } from "../src/app.js";
 import { ensureAdmin } from "../src/db/bootstrap.js";
 import { migrate } from "../src/db/migrate.js";
 import { pool } from "../src/db/pool.js";
-import { MockSpeechProvider } from "../src/modules/voice/providers.js";
 
 export const MOCK_TRANSCRIPT = "दहा किलो रवा, पार्ले बिस्किट वीस पॅकेट, पन्नास किलो गूळ आणि डाबर टूथपेस्ट पाच बॉक्स.";
 
-export const app = createApp({ speechProvider: new MockSpeechProvider(MOCK_TRANSCRIPT) });
+export const app = createApp();
 export const api = () => request(app);
 
 /** Drops everything and re-applies migrations plus the bootstrap admin. */

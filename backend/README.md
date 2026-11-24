@@ -37,18 +37,6 @@ All settings come from environment variables and are validated on start (see `.e
 | `JWT_EXPIRES_IN` | `7d` | Field staff stay signed in for a week. |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma separated; `*` allows any origin. |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | – | First admin, created only when no admin exists. |
-| `STT_PROVIDER` | `mock` | `browser` (the phone recognises speech, no key), `google`, `elevenlabs` or `mock`. `mock` returns `MOCK_TRANSCRIPT` in development only; in production it makes `/voice/transcribe` answer 503 `STT_NOT_CONFIGURED`. The app reads the choice from `GET /voice/config`. |
-| `GOOGLE_SPEECH_API_KEY` | – | Required for `google`. Restrict the key to the Speech-to-Text API. |
-| `ELEVENLABS_API_KEY` | – | Required for `elevenlabs` (ElevenLabs → Developers → API keys, with Speech to Text access). |
-| `ELEVENLABS_MODEL` | `scribe_v2` | ElevenLabs model. Product and brand words are sent as keyterms (billed extra; `STT_PHRASE_BOOST=0` turns them off). |
-| `STT_LANGUAGE` | `mr-IN` | Recognition language. |
-| `STT_MODEL` | `latest_long` | Google model. Falls back to the default model automatically if Google rejects it. |
-| `STT_PHRASE_BOOST` | `12` | Boost (0–20) for the built-in kirana vocabulary: products, brands, units and Marathi number words. `0` turns hints off. |
-| `STT_EXTRA_PHRASES` | – | Comma separated extra words to boost, e.g. local brands: `गणेश चहा,श्री मसाले`. |
-| `STT_ALTERNATIVE_LANGUAGES` | – | Optional extra languages to auto-detect, e.g. `hi-IN`. Off by default because it pulls Marathi words into Hindi spellings. |
-| `STT_MIN_CONFIDENCE` | `0.7` | Below this, the transcript is flagged `needsReview` and unsure words are returned in `lowConfidenceWords`. |
-| `MOCK_TRANSCRIPT` | PRD example sentence | What the mock provider returns. |
-| `MAX_AUDIO_MB` | `10` | Upload limit for recordings. |
 | `BUSINESS_TZ_OFFSET_MINUTES` | `330` | Defines "today" for dashboards (IST). |
 
 ## API reference
@@ -102,16 +90,14 @@ Dates in query strings are `YYYY-MM-DD` in business time (IST).
 | POST | `/shops` | any | `{ name, nameEn?, ownerName?, ownerNameEn?, mobile?, address?, addressEn?, villageId, outstandingBalance? }`. Balance is admin-only. |
 | PATCH / DELETE | `/shops/:id` | admin | |
 
-### Voice
+### Order text parsing
 
 | Method | Path | Role | Description |
 | --- | --- | --- | --- |
-| GET | `/voice/config` | any | `{ provider, language }`: `browser` means the app recognises speech on the phone and only calls `/voice/parse`. |
-| POST | `/voice/transcribe` | any | `multipart/form-data` with `audio` (webm/opus, ogg, wav, flac, mp3) and optional `sampleRate`. Returns `{ text, confidence, needsReview, lowConfidenceWords, provider, language, items, unparsed, summary }`. `needsReview` is true when confidence is under `STT_MIN_CONFIDENCE`, a word was unsure or a part of the order could not be read. 422 `NO_SPEECH` when nothing was recognised. |
-| POST | `/voice/parse` | any | `{ text }` → `{ items, unparsed, formattedText, summary }` after the transcript is edited. `formattedText` is one item per line with digit quantities ("रवा 1 किलो"). |
+| POST | `/items/parse` | any | `{ text }` → `{ items, unparsed, formattedText, summary }`. Used by the review screen when it is reloaded and has to rebuild the lines from the saved text. `formattedText` is one item per line with digit quantities ("रवा 1 किलो"). |
 
 Items look like `{ "name": "रवा", "nameEn": "Rava", "quantity": 10, "unit": "किलो (kg)", "unitCode": "KG" }`.
-Voice responses keep only lines that match an Item Master item (others are listed in `notInMaster` and `ignored`) and carry Item Master matches for each line: `suggestions` (best first, with a
+Parsed lines keep only lines that match an Item Master item (others are listed in `notInMaster` and `ignored`) and carry Item Master matches for each line: `suggestions` (best first, with a
 0–1 `score`) and, when the best one is a confident match, `itemId`, `itemName` and `itemUnit`
 (`nameEn` is then the Item Master name). A spoken price is kept apart from the quantity
 ("पार्ले जी दहा रुपये वीस पॅकेट" → `पार्ले जी ₹10`, 20 packets), and so is a pack size
@@ -175,7 +161,7 @@ backend/
     config.ts          Validated environment
     db/                Pool, migration runner, bootstrap admin
     middleware/        Auth (JWT + role checks), error handling
-    modules/           auth, salespersons, villages, shops, orders, visits, dashboard, voice, items
+    modules/           auth, salespersons, villages, shops, orders, visits, dashboard, items (the parser lives in `voice/`)
   scripts/             item-master-sql.ts: item list → seed migration
   tests/               Vitest unit and API tests
 ```

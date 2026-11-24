@@ -15,14 +15,8 @@ import { salespersonsRouter } from "./modules/salespersons/routes.js";
 import { shopsRouter } from "./modules/shops/routes.js";
 import { villagesRouter } from "./modules/villages/routes.js";
 import { visitsRouter } from "./modules/visits/routes.js";
-import { createVoiceRouter } from "./modules/voice/routes.js";
-import type { SpeechProvider } from "./modules/voice/providers.js";
 
-export interface AppOptions {
-  speechProvider?: SpeechProvider;
-}
-
-export function createApp(options: AppOptions = {}) {
+export function createApp() {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
@@ -34,6 +28,8 @@ export function createApp(options: AppOptions = {}) {
       credentials: true,
     }),
   );
+  // A full JSON backup is far bigger than a normal request, so only the restore route accepts large bodies.
+  app.use("/api/v1/dashboard/import/restore", express.json({ limit: "20mb" }));
   app.use(express.json({ limit: "1mb" }));
   app.use(
     pinoHttp({
@@ -68,7 +64,6 @@ export function createApp(options: AppOptions = {}) {
   api.use("/notifications", notificationsRouter);
   api.use("/visits", visitsRouter);
   api.use("/dashboard", dashboardRouter);
-  api.use("/voice", createVoiceRouter(options.speechProvider));
   app.use("/api/v1", api);
 
   app.use(notFoundHandler);

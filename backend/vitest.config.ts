@@ -14,7 +14,6 @@ export default defineConfig({
       JWT_SECRET: "test-secret-test-secret-test-secret",
       ADMIN_EMAIL: "admin@jain.com",
       ADMIN_PASSWORD: "admin123",
-      STT_PROVIDER: "mock",
     },
   },
 });
