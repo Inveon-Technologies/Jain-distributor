@@ -22,7 +22,8 @@ export default function SalesHomePage() {
   };
 
   // Count orders taken today by current user
-  const todayOrdersCount = orders.filter((o) => o.salespersonId === currentUser?.id).length;
+  // Cancelled orders are not counted, matching the admin dashboard.
+  const todayOrdersCount = orders.filter((o) => o.salespersonId === currentUser?.id && o.status !== "CANCELLED").length;
 
   return (
     <div className="space-y-6">

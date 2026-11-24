@@ -6,7 +6,8 @@ import { idParams, pageMeta, pagination, status } from "../../lib/schemas.js";
 import { parse } from "../../lib/validate.js";
 import { authenticate, requireAdmin } from "../../middleware/auth.js";
 import { isDevanagari } from "../voice/phonetic.js";
-import { invalidateItemCatalog, itemMatcher } from "./catalog.js";
+import { invalidateItemCatalog, itemMatcher, keepMasterItems } from "./catalog.js";
+import { formatOrderText, parseOrderText, summarizeItems } from "../voice/parser.js";
 import { cleanItemName, normalizeUnit, parseItemList, priceOf, toItemCsv } from "./importer.js";
 
 /** Item Master: the products salespersons' spoken orders are matched to. */
@@ -102,6 +103,14 @@ itemsRouter.get("/suggest", async (req, res) => {
 });
 
 /** GET /items/export – the whole Item Master as CSV (opens in Excel; re-importable). */
+/** POST /items/parse { text } – turns typed order text into Item Master lines (fallback when the review page is reloaded). */
+itemsRouter.post("/parse", async (req, res) => {
+  const { text } = parse(z.object({ text: z.string().trim().min(1).max(5000) }), req.body);
+  const matcher = await itemMatcher();
+  const parsed = keepMasterItems(parseOrderText(text, { isKnownWord: matcher.isKnownWord }), matcher);
+  res.json({ data: { text, ...parsed, formattedText: formatOrderText(parsed), summary: summarizeItems(parsed.items) } });
+});
+
 itemsRouter.get("/export", requireAdmin, async (_req, res) => {
   const { rows } = await pool.query(
     `SELECT name, unit, price, marathi_name AS "marathiName", aliases, status

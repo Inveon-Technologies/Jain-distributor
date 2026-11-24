@@ -149,7 +149,7 @@ export function NotificationBell() {
     } catch {
       setFailed(true);
     }
-  }, [mr, refresh, title]);
+  }, [mr, refresh, title, router]);
 
   useEffect(() => {
     setSeen(readSeen());
@@ -193,13 +193,6 @@ export function NotificationBell() {
   const toggle = () => {
     if (open) markAllRead();
     setOpen(!open);
-  };
-
-  const go = (n: AppNotification) => {
-    markAllRead();
-    setOpen(false);
-    const url = n.type === "NEW_ORDER" ? `/admin/orders/${n.id}` : "/admin/salespersons";
-    setTimeout(() => router.push(url), 50);
   };
 
   const enableAlerts = async () => {

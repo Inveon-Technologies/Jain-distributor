@@ -1,5 +1,4 @@
 import type { NextFunction, Request, Response } from "express";
-import multer from "multer";
 import { HttpError } from "../lib/errors.js";
 import { logger } from "../lib/logger.js";
 
@@ -16,9 +15,8 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     res.status(err.status).json({ error: { code: err.code, message: err.message, details: err.details } });
     return;
   }
-  if (err instanceof multer.MulterError) {
-    const status = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
-    res.status(status).json({ error: { code: err.code, message: err.message } });
+  if ((err as { type?: string }).type === "entity.too.large") {
+    res.status(413).json({ error: { code: "PAYLOAD_TOO_LARGE", message: "The request is too large" } });
     return;
   }
   if (err instanceof SyntaxError && "body" in err) {

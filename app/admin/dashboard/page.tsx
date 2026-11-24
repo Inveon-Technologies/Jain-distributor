@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toOrder, toSalesperson, toVillage } from "@/lib/api";
+import type { Order, Salesperson, Village } from "@/data/types";
 import { translations } from "@/data/translations";
 import { autoBilingualName } from "@/utils/transliterate";
 import { BilingualName } from "@/components/common/BilingualName";
@@ -18,7 +19,12 @@ import {
   ExternalLink,
 } from "lucide-react";
 
+/** The dashboard refreshes itself this often so the cards and tables never drift apart. */
+const REFRESH_MS = 30_000;
+
 interface DashboardSummary {
+  activeSalespersons: number;
+  totalSalespersons: number;
   villageVisitsToday: number;
   shopsVisitedToday: number;
   ordersToday: number;
@@ -26,7 +32,7 @@ interface DashboardSummary {
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const { language, villages, salespersons, orders, addVillage } = useApp();
+  const { language, orders: sessionOrders, addVillage } = useApp();
   const t = translations[language];
 
   // Dynamic time-based greeting
@@ -38,13 +44,45 @@ export default function AdminDashboardPage() {
     return t.greetingNight;
   };
 
-  // Today's KPI counts come from the API; refetched whenever the order list changes.
+  // Cards, both tables and the recent orders come from one snapshot of the server, fetched together, so
+  // they always describe the same moment (the tables used to be loaded once at login and went stale).
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [villages, setVillages] = useState<Village[]>([]);
+  const [salespersons, setSalespersons] = useState<Salesperson[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  const loadSnapshot = useCallback(async () => {
+    try {
+      const [sum, vil, sp, ord] = await Promise.all([
+        apiFetch<{ data: DashboardSummary }>("/dashboard/summary"),
+        apiFetch<{ data: Parameters<typeof toVillage>[0][] }>("/villages"),
+        apiFetch<{ data: Parameters<typeof toSalesperson>[0][] }>("/salespersons"),
+        apiFetch<{ data: Parameters<typeof toOrder>[0][] }>("/orders?pageSize=3"),
+      ]);
+      setSummary(sum.data);
+      setVillages(vil.data.map(toVillage));
+      setSalespersons(sp.data.map(toSalesperson));
+      setOrders(ord.data.map(toOrder));
+    } catch {
+      // Keep showing the last good snapshot; the next refresh tries again.
+    }
+  }, []);
+
   useEffect(() => {
-    apiFetch<{ data: DashboardSummary }>("/dashboard/summary")
-      .then(({ data }) => setSummary(data))
-      .catch(() => setSummary(null));
-  }, [orders]);
+    void loadSnapshot();
+    const timer = setInterval(() => void loadSnapshot(), REFRESH_MS);
+    const onVisible = () => document.visibilityState === "visible" && void loadSnapshot();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [loadSnapshot]);
+
+  // The notification bell refreshes the session's orders when a new one arrives: reload right away.
+  useEffect(() => {
+    void loadSnapshot();
+  }, [sessionOrders, loadSnapshot]);
 
   // Modal state for adding a village
   const [isAddVillageOpen, setIsAddVillageOpen] = useState(false);
@@ -71,9 +109,10 @@ export default function AdminDashboardPage() {
     setVName("");
     setVTaluka("");
     setIsAddVillageOpen(false);
+    void loadSnapshot();
   };
 
-  const activeSalesCount = salespersons.filter((s) => s.status === "ACTIVE").length;
+  const activeSalesCount = summary?.activeSalespersons ?? salespersons.filter((s) => s.status === "ACTIVE").length;
 
   return (
     <div className="space-y-6">
@@ -102,7 +141,7 @@ export default function AdminDashboardPage() {
               <span className="text-2xl sm:text-3xl font-black text-brand-dark">
                 {activeSalesCount}
               </span>
-              <span className="text-xs text-slate-400 font-bold">/ {salespersons.length}</span>
+              <span className="text-xs text-slate-400 font-bold">/ {summary?.totalSalespersons ?? salespersons.length}</span>
             </div>
           </div>
         </div>
@@ -300,7 +339,7 @@ export default function AdminDashboardPage() {
           <div>
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <ClipboardList className="w-5 h-5 text-brand-primary" />
-              <span>{language === "mr" ? "नुकत्याच नोंदवलेल्या व्हॉईस ऑर्डर्स" : "Recent Live Voice Orders"}</span>
+              <span>{language === "mr" ? "नुकत्याच नोंदवलेल्या ऑर्डर्स" : "Recent Orders"}</span>
             </h2>
             <span className="text-xs text-slate-400 font-medium">
               {language === "mr" ? "फील्डमधून आलेले ताजे ऑर्डर्स" : "Latest incoming orders from field salesmen"}

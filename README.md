@@ -10,8 +10,8 @@
 This is a modern, responsive **Next.js 14** web application built with **React**, **TypeScript**, and **Tailwind CSS**. It replaces manual paper registers with a digital field order collection and operations management system for Jain Distributor, Pandharpur.
 
 The application houses two distinct, role-based portals behind a single unified login:
-1. **📱 Salesperson Field Portal (`/sales`)**: Mobile-first, native Marathi-language interface for field sales representatives to select villages, choose retail shops, and record orders via voice.
-2. **💻 Admin Back-Office Dashboard (`/admin`)**: Desktop management portal providing real-time visibility into active salespersons, village visits, shops visited, and voice-transcribed orders.
+1. **📱 Salesperson Field Portal (`/sales`)**: Mobile-first, native Marathi-language interface for field sales representatives to select villages, choose retail shops, and record orders by searching the Item Master (type a few letters, pick from the suggestions).
+2. **💻 Admin Back-Office Dashboard (`/admin`)**: Desktop management portal providing real-time visibility into active salespersons, village visits, shops visited, and orders.
 
 ---
 
@@ -46,7 +46,7 @@ On the root login page (`http://localhost:3000`), enter credentials, sign in wit
 
 ## 🧩 Backend API, Docker & CI/CD
 
-The backend lives in [`backend/`](backend/README.md): Node.js 22 + Express 5 + TypeScript + PostgreSQL 16, with Marathi (`mr-IN`) speech-to-text for voice orders. See [`backend/README.md`](backend/README.md) for the full API reference.
+The backend lives in [`backend/`](backend/README.md): Node.js 22 + Express 5 + TypeScript + PostgreSQL 16. See [`backend/README.md`](backend/README.md) for the full API reference.
 
 ### Run everything with Docker
 
@@ -74,7 +74,7 @@ Release notes: [`RELEASE_NOTES.md`](RELEASE_NOTES.md).
 * **`/sales/shops`**: **दुकान निवडा** (View village shops like श्री गणेश किराणा, साई किराणा, माऊली ट्रेडर्स) + **नवीन दुकान जोडा** button.
 * **`/sales/shops/new`**: **नवीन दुकान नोंदणी** (Form to register a new village shop).
 * **`/sales/order/record`**: **ऑर्डर नोंदवा** (Interactive pulsing microphone button to speak orders in Marathi).
-* **`/sales/order/review`**: **ऑर्डर तपासा** (Review transcribed speech, ✏️ Edit text, adjustable item quantities, and 🔄 Re-record).
+* **`/sales/order/review`**: **ऑर्डर तपासा** (review the chosen items, adjust quantities, remove or add lines).
 * **`/sales/order/success`**: **ऑर्डर जतन झाली** (Confirmation screen with reference ID).
 * **`/sales/orders/today`**: **आजच्या ऑर्डर्स** (Today's logged orders with timestamps and items).
 * **`/sales/profile`**: **माझे प्रोफाइल** (Salesperson territory and daily stats).
@@ -86,10 +86,10 @@ Release notes: [`RELEASE_NOTES.md`](RELEASE_NOTES.md).
   * **4 KPI Summary Cards**: Active Salespersons (10/12), Today's Village Visits (28), Today's Shops Visited (65), Today's Orders Recorded (Live count).
   * **Village Activity Table**: Tracks visits, shops visited, and orders taken per village + **Add Village** modal.
   * **Salesperson Performance Table**: Tracks field status (Active/Inactive), visits, and orders taken.
-  * **Recent Voice Orders**: Live incoming orders with direct link to details.
+  * **Recent Orders**: Live incoming orders with direct link to details.
 * **`/admin/orders`**: Full searchable and filterable orders table.
-* **`/admin/orders/[id]`**: Detailed order inspection displaying the **exact recorded Marathi voice transcript**, shop information, and salesperson information.
-* **`/admin/items`**: **Item Master** (आयटम मास्टर) with the distributor's ~4,000 products. Search in English or Marathi, add/edit items with a Marathi name and spoken aliases, import a pasted or uploaded list, export it to Excel/CSV and import it back with updated prices, and test how a spoken Marathi phrase is matched. Voice orders suggest items from this list and keep only lines that match it.
+* **`/admin/orders/[id]`**: Detailed order inspection displaying the **order text**, shop information, and salesperson information.
+* **`/admin/items`**: **Item Master** (आयटम मास्टर) with the distributor's ~4,000 products. Search in English or Marathi, add/edit items with a Marathi name and spoken aliases, import a pasted or uploaded list, export it to Excel/CSV and import it back with updated prices, and test how a spoken Marathi phrase is matched. Salespersons pick items from this list while typing an order.
 * **`/admin/salespersons`**: Salesperson master management.
 * **`/admin/villages`**: Village territory management.
 * **`/admin/shops`**: Partner retailer shops directory with credit balance tracking.
@@ -117,4 +117,4 @@ The application features a global language toggle (`[ मराठी | English 
 ## 🐳 Integration Status
 1. The backend API, Docker images and CI/CD are in place (see above).
 2. The UI talks to the API through `lib/api.ts` (`NEXT_PUBLIC_API_URL`, default same-origin `/api/v1`); `context/AppContext.tsx` holds the session (JWT in `localStorage`) and the loaded data. There is no demo data.
-3. The order screen (`app/sales/order/record/page.tsx`) records with noise suppression (`lib/voice/recorder.ts`) and uploads 16 kHz WAV to `POST /api/v1/voice/transcribe` (Google Cloud Speech-to-Text, `mr-IN`, `lib/voice/transcribe.ts`).
+3. The order screen (`app/sales/order/record/page.tsx`) searches the Item Master as the salesperson types (`GET /items/suggest`); the review screen saves the chosen lines with `POST /orders`.

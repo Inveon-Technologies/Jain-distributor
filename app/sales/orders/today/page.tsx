@@ -32,7 +32,7 @@ export default function TodayOrdersPage() {
             {t.todayOrdersTitle}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            {t.todayOrdersSubtitle} ({userOrders.length} {language === "mr" ? "ऑर्डर्स" : "Orders"})
+            {t.todayOrdersSubtitle} ({userOrders.filter((o) => o.status !== "CANCELLED").length} {language === "mr" ? "ऑर्डर्स" : "Orders"})
           </p>
         </div>
 

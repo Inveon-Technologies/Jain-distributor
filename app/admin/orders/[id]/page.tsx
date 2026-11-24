@@ -7,7 +7,7 @@ import { DataGate } from "@/components/common/DataGate";
 import { translations } from "@/data/translations";
 import { BilingualName } from "@/components/common/BilingualName";
 import { apiFetch, toOrder, ApiOrder } from "@/lib/api";
-import { Order } from "@/data/types";
+import type { Order, Salesperson, Shop, Village } from "@/data/types";
 import {
   ArrowLeft,
   Store,
@@ -18,6 +18,19 @@ import {
   Printer,
 } from "lucide-react";
 
+type Raw<K extends string> = { id: string } & Partial<Record<K, string | null>>;
+/** What GET /orders/:id returns next to the order itself. */
+interface OrderMeta {
+  shop?: Raw<"name" | "nameEn" | "ownerName" | "ownerNameEn" | "mobile" | "address">;
+  village?: Raw<"marathiName" | "englishName">;
+  salesperson?: Raw<"name" | "nameEn" | "mobile">;
+}
+interface FetchedMeta {
+  shop?: Shop;
+  village?: Pick<Village, "id" | "marathiName" | "englishName"> & { taluka?: string };
+  salesperson?: Salesperson;
+}
+
 export default function OrderDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -27,43 +40,48 @@ export default function OrderDetailsPage() {
 
   const contextOrder = orders.find((o) => o.id === orderId);
   const [fetchedOrder, setFetchedOrder] = useState<Order | null>(null);
-  const [fetchedMeta, setFetchedMeta] = useState<{ shop?: any; village?: any; salesperson?: any } | null>(null);
+  const [fetchedMeta, setFetchedMeta] = useState<FetchedMeta | null>(null);
   const [isLoading, setIsLoading] = useState(!contextOrder);
 
   useEffect(() => {
     if (!contextOrder && orderId) {
       setIsLoading(true);
-      apiFetch<{ data: ApiOrder & { shop?: any; village?: any; salesperson?: any } }>(`/orders/${orderId}`)
+      apiFetch<{ data: ApiOrder & OrderMeta }>(`/orders/${orderId}`)
         .then((res) => {
           setFetchedOrder(toOrder(res.data));
           setFetchedMeta({
             shop: res.data.shop
               ? {
                   id: res.data.shop.id,
-                  name: res.data.shop.name,
-                  nameEn: res.data.shop.nameEn,
+                  name: res.data.shop.name ?? "",
+                  nameEn: res.data.shop.nameEn ?? "",
                   owner: res.data.shop.ownerName || "",
-                  ownerEn: res.data.shop.ownerNameEn,
+                  ownerEn: res.data.shop.ownerNameEn ?? "",
                   mobile: res.data.shop.mobile || "",
                   address: res.data.shop.address || "",
+                  addressEn: "",
+                  outstandingBalance: 0,
                   villageId: res.data.villageId,
                 }
               : undefined,
             village: res.data.village
               ? {
                   id: res.data.village.id,
-                  marathiName: res.data.village.marathiName,
-                  englishName: res.data.village.englishName,
+                  marathiName: res.data.village.marathiName ?? "",
+                  englishName: res.data.village.englishName ?? "",
                 }
               : undefined,
             salesperson: res.data.salesperson
               ? {
                   id: res.data.salesperson.id,
-                  name: res.data.salesperson.name,
-                  nameEn: res.data.salesperson.nameEn,
+                  name: res.data.salesperson.name ?? "",
+                  nameEn: res.data.salesperson.nameEn ?? "",
                   email: "",
                   mobile: res.data.salesperson.mobile || "",
                   status: "ACTIVE",
+                  todayVisits: 0,
+                  todayOrders: 0,
+                  assignedVillages: [],
                 }
               : undefined,
           });

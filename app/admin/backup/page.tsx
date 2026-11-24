@@ -14,10 +14,6 @@ import {
   RefreshCw,
   ShieldCheck,
   Package,
-  MapPin,
-  Store,
-  Users,
-  ArrowRight,
 } from "lucide-react";
 
 interface BackupData {

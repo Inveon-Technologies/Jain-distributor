@@ -120,7 +120,7 @@ cat <<EOF
 
 Server is ready. Next steps:
   1. Point the DNS A record for your domain at this server's public IP.
-  2. Edit $APP_DIR/.env: DOMAIN, ACME_EMAIL, ADMIN_PASSWORD, GOOGLE_SPEECH_API_KEY.
+  2. Edit $APP_DIR/.env: DOMAIN, ACME_EMAIL, ADMIN_PASSWORD.
   3. Either run a release from GitHub (see deploy/README.md), or start it by hand:
        sudo -iu $DEPLOY_USER
        cd $APP_DIR && docker compose -f docker-compose.prod.yml up -d

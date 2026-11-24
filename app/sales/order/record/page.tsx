@@ -134,7 +134,7 @@ function RecordOrderContent() {
   const handleProceed = () => {
     if (cart.length === 0) return;
 
-    // Build a simple text representation for the review page's /voice/parse fallback
+    // Build a simple text representation for the review page's /items/parse fallback
     const orderText = cart
       .map((item) => {
         const displayName = item.marathiName || item.name;

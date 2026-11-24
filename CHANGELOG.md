@@ -7,6 +7,28 @@ notes when the matching `vx.y.z` tag is pushed.
 
 ## [Unreleased]
 
+### Removed
+
+- Voice ordering is gone: the `/voice/transcribe` and `/voice/config` endpoints, the speech-to-text
+  providers (Google, ElevenLabs, browser, mock), the recorder in the web app and every `STT_*`,
+  `GOOGLE_SPEECH_API_KEY`, `ELEVENLABS_*` and `MAX_AUDIO_MB` setting. Salespersons type in the Item
+  Master search. `POST /voice/parse` moved to `POST /items/parse`.
+
+### Fixed
+
+- Dashboard numbers disagreed. The cards, the Salespersons table and the Villages table now all
+  ignore cancelled orders and removed salespersons, and the dashboard reloads all of them together
+  every 30 seconds instead of showing tables loaded once at login. The salesperson's own
+  "orders recorded" count no longer includes cancelled orders.
+- A request body over the size limit answered 500; it now answers 413. A full JSON backup can be
+  restored (the restore route accepts up to 20 MB).
+- The web lint and type checks pass again (CI's web job was failing).
+
+### Added
+
+- `deploy/update-server.sh`: backs up the database, deploys a git ref and rebuilds the images on a
+  server that builds its own images.
+
 ### Fixed
 
 - The admin notification bell was only a picture with a dot that never changed. It now lists new
